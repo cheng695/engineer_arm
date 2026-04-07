@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Include arm description -->
+  <xacro:include filename="$(find arm_description)/urdf/arm.xacro"/>
+
+  <!-- Include gripper description -->
+  <xacro:include filename="$(find gripper_description)/urdf/gripper.xacro"/>
+
+  <!-- Include chassis description -->
+  <xacro:include filename="$(find chassis_description)/urdf/chassis.xacro"/>
+
+  <!-- Connect chassis to arm -->
+  <joint name="chassis_to_arm_joint" type="fixed">
+    <origin xyz="0.15 0 0.2" rpy="0 0 0"/>
+    <parent link="chassis_link"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- Connect gripper to arm: gripper_base_link attached to tool_link -->
+  <joint name="gripper_base_joint" type="fixed">
+    <parent link="tool_link"/>
+    <child link="gripper_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Future: include chassis_description connection here -->
+
+</robot>

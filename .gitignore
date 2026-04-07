@@ -1,0 +1,19 @@
+# ROS 2 ignore files
+build/
+install/
+log/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.pyc
+__pycache__/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# ROS 2 specific
+.ament_cmake_index/
+colcon_ignore
