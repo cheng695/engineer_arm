@@ -2,25 +2,34 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- ==================== chassis_link (Main Body) ==================== -->
+  <link name="chassis_base_link" />
+
+  <joint name="chassis_base_to_chassis_joint" type="fixed">
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <parent link="chassis_base_link"/>
+    <child link="chassis_link"/>
+  </joint>
+
+  <!-- ==================== chassis_link (Main Body) ==================== -->
   <link name="chassis_link">
     <inertial>
-      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="10.0"/>
       <inertia ixx="0.5" ixy="0" ixz="0" iyy="0.5" iyz="0" izz="0.5"/>
     </inertial>
     <visual>
-      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.6 0.6 0.2"/>
+        <box size="0.6 0.6 0.1"/>
       </geometry>
       <material name="chassis_color">
         <color rgba="0.2 0.2 0.2 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.6 0.6 0.2"/>
+        <box size="0.6 0.6 0.1"/>
       </geometry>
     </collision>
   </link>
@@ -28,16 +37,16 @@
   <!-- ==================== armor_left_link ==================== -->
   <link name="armor_left_link">
     <visual>
-      <geometry><box size="0.4 0.02 0.2"/></geometry>
-      <material name="armor_color"><color rgba="1 0 0 1"/></material>
+      <geometry><box size="0.135 0.1 0.2"/></geometry>
+      <material name="armor_color"><color rgba="0.5 0.5 0.5 1"/></material>
     </visual>
     <collision>
-      <geometry><box size="0.4 0.02 0.2"/></geometry>
+      <geometry><box size="0.135 0.1 0.2"/></geometry>
     </collision>
   </link>
 
   <joint name="joint_armor_left" type="fixed">
-    <origin xyz="0 0.21 0.1" rpy="0 0 0"/>
+    <origin xyz="0 -0.25 0.15" rpy="0 0 0"/>
     <parent link="chassis_link"/>
     <child link="armor_left_link"/>
   </joint>
@@ -45,16 +54,16 @@
   <!-- ==================== armor_right_link ==================== -->
   <link name="armor_right_link">
     <visual>
-      <geometry><box size="0.1 0.135 0.2"/></geometry>
+      <geometry><box size="0.135 0.1 0.2"/></geometry>
       <material name="armor_color"/>
     </visual>
     <collision>
-      <geometry><box size="0.1 0.135 0.2"/></geometry>
+      <geometry><box size="0.135 0.1 0.2"/></geometry>
     </collision>
   </link>
 
   <joint name="joint_armor_right" type="fixed">
-    <origin xyz="0 -0.21 0.1" rpy="0 0 0"/>
+    <origin xyz="0 0.25 0.15" rpy="0 0 0"/>
     <parent link="chassis_link"/>
     <child link="armor_right_link"/>
   </joint>
@@ -62,16 +71,16 @@
   <!-- ==================== warehouse_big_link ==================== -->
   <link name="warehouse_big_link">
     <visual>
-      <geometry><box size="0.19 0.46 0.25"/></geometry>
+      <geometry><box size="0.2 0.46 0.15"/></geometry>
       <material name="warehouse_color"><color rgba="0.4 0.4 0.4 1"/></material>
     </visual>
     <collision>
-      <geometry><box size="0.19 0.46 0.25"/></geometry>
+      <geometry><box size="0.2 0.46 0.15"/></geometry>
     </collision>
   </link>
 
   <joint name="joint_warehouse_big" type="fixed">
-    <origin xyz="-0.2 0 0.275" rpy="0 0 0"/>
+    <origin xyz="-0.2 0 0.125" rpy="0 0 0"/>
     <parent link="chassis_link"/>
     <child link="warehouse_big_link"/>
   </joint>
@@ -79,19 +88,23 @@
   <!-- ==================== warehouse_small_link ==================== -->
   <link name="warehouse_small_link">
     <visual>
-      <geometry><box size="0.13 0.19 0.14"/></geometry>
+      <geometry><box size="0.13 0.19 0.0933"/></geometry>
       <material name="warehouse_color"/>
     </visual>
     <collision>
-      <geometry><box size="0.13 0.19 0.14"/></geometry>
+      <geometry><box size="0.13 0.19 0.0933"/></geometry>
     </collision>
   </link>
 
   <joint name="joint_warehouse_small" type="fixed">
-    <origin xyz="-0.05 0 0.25" rpy="0 0 0"/>
+    <origin xyz="-0.05 0 0.09665" rpy="0 0 0"/>
     <parent link="chassis_link"/>
     <child link="warehouse_small_link"/>
   </joint>
+
+
+
+
 
   <!-- ==================== left link (Original Mesh) ==================== -->
   <link name="left">
@@ -103,14 +116,16 @@
       <material name="cyan"><color rgba="0 1 1 1"/></material>
     </visual>
     <collision>
-      <origin xyz="0.05 0 -0.05" rpy="0 0 0"/>
-      <geometry><box size="0.1 0.02 0.3"/></geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/left.STL"/>
+      </geometry>
     </collision>
   </link>
 
   <joint name="joint_left_mesh" type="fixed">
-    <origin xyz="-0.34589 0.1785 0.17728" rpy="0 0 0"/>
-    <parent link="chassis_link"/>
+    <origin xyz="-0.05 -0.18 0.125" rpy="0 0 0"/>
+    <parent link="warehouse_big_link"/>
     <child link="left"/>
   </joint>
 
@@ -124,15 +139,34 @@
       <material name="white"><color rgba="1 1 1 1"/></material>
     </visual>
     <collision>
-      <origin xyz="0.05 0 -0.05" rpy="0 0 0"/>
-      <geometry><box size="0.1 0.02 0.3"/></geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/right.STL"/>
+      </geometry>
     </collision>
   </link>
 
   <joint name="joint_right_mesh" type="fixed">
-    <origin xyz="-0.34589 -0.1785 0.17728" rpy="0 0 0"/>
-    <parent link="chassis_link"/>
+    <origin xyz="-0.05 0.18 0.125" rpy="0 0 0"/>
+    <parent link="warehouse_big_link"/>
     <child link="right"/>
+  </joint>
+
+  <!-- ==================== 灯条 ==================== -->
+  <link name="light_link">
+    <visual>
+      <geometry><box size="0.06 0.285 0.07"/></geometry>
+      <material name="warehouse_color"><color rgba="0.4 0.4 0.4 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.06 0.285 0.07"/></geometry>
+    </collision>
+  </link>
+
+  <joint name="joint_light" type="fixed">
+    <origin xyz="-0.07 0 0.11" rpy="0 0 0"/>
+    <parent link="warehouse_big_link"/>
+    <child link="light_link"/>
   </joint>
 
 </robot>

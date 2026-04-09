@@ -124,4 +124,14 @@
     <limit lower="0" upper="0.04" effort="2" velocity="2"/>
   </joint>
 
+
+  <!-- ==================== link_ee (End Effector) ==================== -->
+  <link name="link_ee"/>
+
+  <joint name="joint_ee" type="fixed">
+    <origin xyz="0.13 0 0" rpy="0 0 0"/>
+    <parent link="gripper_base_link"/>
+    <child link="link_ee"/>
+  </joint>
+
 </robot>

@@ -15,6 +15,8 @@ def generate_launch_description():
 
     robot_description = Command(['xacro ', xacro_file])
 
+    rviz_config_dir = os.path.join(pkg_share, 'rviz', 'rviz_description.rviz')
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
@@ -41,5 +43,6 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             name='rviz2',
-            output='screen'),
+            output='screen',
+            arguments=['-d', rviz_config_dir]),
     ])

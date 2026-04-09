@@ -12,11 +12,11 @@
 
   <!-- Connect chassis to arm -->
   <joint name="chassis_to_arm_joint" type="fixed">
-    <origin xyz="0.15 0 0.2" rpy="0 0 0"/>
+    <origin xyz="0.15 0 0.05" rpy="0 0 0"/>
     <parent link="chassis_link"/>
     <child link="base_link"/>
   </joint>
-
+  
   <!-- Connect gripper to arm: gripper_base_link attached to tool_link -->
   <joint name="gripper_base_joint" type="fixed">
     <parent link="tool_link"/>
