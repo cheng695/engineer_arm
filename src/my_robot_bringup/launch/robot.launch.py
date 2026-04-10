@@ -10,6 +10,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 def generate_launch_description():
     # Set arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    use_mock_hardware = LaunchConfiguration('use_mock_hardware', default='false')
 
     # Path to xacro
     moveit_config_pkg = get_package_share_directory("my_robot_moveit_config")
@@ -18,7 +19,8 @@ def generate_launch_description():
     # Robot Description
     robot_description_content = Command([
         'xacro ', xacro_file, 
-        ' initial_positions_file:=', os.path.join(moveit_config_pkg, "config", "initial_positions.yaml")
+        ' initial_positions_file:=', os.path.join(moveit_config_pkg, "config", "initial_positions.yaml"),
+        ' use_mock_hardware:=', use_mock_hardware
     ])
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 
@@ -98,6 +100,11 @@ def generate_launch_description():
             'use_sim_time',
             default_value='false',
             description='Use simulation clock if true'),
+        
+        DeclareLaunchArgument(
+            'use_mock_hardware',
+            default_value='false',
+            description='Use mock hardware (simulation) if true'),
         
         robot_state_publisher,
         ros2_control_node,

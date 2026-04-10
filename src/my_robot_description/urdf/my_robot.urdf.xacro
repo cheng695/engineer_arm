@@ -10,6 +10,13 @@
   <!-- Include chassis description -->
   <xacro:include filename="$(find chassis_description)/urdf/chassis.xacro"/>
 
+  <!-- Arguments -->
+  <xacro:arg name="use_mock_hardware" default="false"/>
+
+  <!-- Include ros2_control configuration -->
+  <xacro:include filename="$(find arm_description)/urdf/arm.ros2_control.xacro"/>
+  <xacro:arm_ros2_control name="ArmControl" use_mock_hardware="$(arg use_mock_hardware)"/>
+
   <!-- Connect chassis to arm -->
   <joint name="chassis_to_arm_joint" type="fixed">
     <origin xyz="0.15 0 0.05" rpy="0 0 0"/>

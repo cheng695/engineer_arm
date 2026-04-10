@@ -58,22 +58,22 @@
         <joint name="joint7" value="-1.5708"/>
     </group_state>
     <group_state name="right" group="arm">
-        <joint name="joint1" value="1.9136"/>
-        <joint name="joint2" value="-0.2617"/>
-        <joint name="joint3" value="-0.1856"/>
-        <joint name="joint4" value="-1.5751"/>
-        <joint name="joint5" value="0.7203"/>
-        <joint name="joint6" value="-1.2931"/>
-        <joint name="joint7" value="-1.5361"/>
+        <joint name="joint1" value="2.0794"/>
+        <joint name="joint2" value="-0.1193"/>
+        <joint name="joint3" value="-0.0728"/>
+        <joint name="joint4" value="-1.3729"/>
+        <joint name="joint5" value="0.4066"/>
+        <joint name="joint6" value="-1.2376"/>
+        <joint name="joint7" value="-1.5034"/>
     </group_state>
     <group_state name="left" group="arm">
-        <joint name="joint1" value="-1.8355"/>
-        <joint name="joint2" value="-0.2617"/>
-        <joint name="joint3" value="-0.3235"/>
-        <joint name="joint4" value="1.6532"/>
-        <joint name="joint5" value="1.3972"/>
-        <joint name="joint6" value="-0.6335"/>
-        <joint name="joint7" value="-1.5361"/>
+        <joint name="joint1" value="-2.1222"/>
+        <joint name="joint2" value="-0.0726"/>
+        <joint name="joint3" value="0.0307"/>
+        <joint name="joint4" value="-1.7469"/>
+        <joint name="joint5" value="-0.0731"/>
+        <joint name="joint6" value="1.4981"/>
+        <joint name="joint7" value="1.4376"/>
     </group_state>
     <group_state name="open" group="gripper">
         <joint name="joint_right_finger" value="0"/>
