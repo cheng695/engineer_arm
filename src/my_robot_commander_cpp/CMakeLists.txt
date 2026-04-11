@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(moveit_servo REQUIRED)
 find_package(moveit_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -28,6 +29,7 @@ target_compile_features(commander_node PUBLIC cxx_std_17)
 ament_target_dependencies(commander_node
   rclcpp
   moveit_ros_planning_interface
+  moveit_servo
   moveit_msgs
   geometry_msgs
   tf2

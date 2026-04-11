@@ -1,0 +1,24 @@
+commander:
+  ros__parameters:
+    moveit_servo:
+      ## Properties of incoming commands
+      command_in_type: "speed_units" # "unitless"> [0, 1] or "speed_units"> [m/s, rad/s]
+      scale:
+        linear: 0.6
+        rotational: 0.3
+        joint: 0.1
+      command_out_type: trajectory_msgs/JointTrajectory
+      publish_period: 0.01 
+      low_latency_mode: false
+      publish_delay: 0.005
+      move_group_name: arm
+      planning_frame: base_link
+      ee_frame_name: tool_link
+      robot_link_command_frame: base_link
+      check_collisions: true
+      collision_check_type: threshold
+      self_collision_proximity_threshold: 0.01
+      scene_collision_proximity_threshold: 0.02
+      collision_check_rate: 10.0
+      incoming_command_timeout: 0.1
+      joint_limit_margin: 0.1
