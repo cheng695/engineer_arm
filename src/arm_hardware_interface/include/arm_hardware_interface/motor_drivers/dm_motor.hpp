@@ -56,17 +56,20 @@ namespace arm_hardware_interface::motor_drivers::DM
          */
         void parse_feedback(const uint8_t data[8])
         {
+            // Byte 0: [ID: 0-3 bit] [Status/Error: 4-7 bit]
+            state_.error_code = (data[0] >> 4);
+            
             // Extract raw bits
             uint16_t p_int = (data[1] << 8) | data[2];
             uint16_t v_int = (data[3] << 4) | (data[4] >> 4);
             uint16_t t_int = ((data[4] & 0x0F) << 8) | data[5];
 
             // Convert to floating point
-            unit_data_.angle_Rad = uint_to_float(p_int, params_.P_MIN, params_.P_MAX, 16);
-            unit_data_.angle_Deg = unit_data_.angle_Rad * params_.rad_to_deg;
-            unit_data_.velocity_Rad = uint_to_float(v_int, params_.V_MIN, params_.V_MAX, 12);
-            unit_data_.torque_Nm = uint_to_float(t_int, params_.T_MIN, params_.T_MAX, 12);
-            unit_data_.temperature_C = (double)data[6];
+            state_.angle_Rad = uint_to_float(p_int, params_.P_MIN, params_.P_MAX, 16);
+            state_.angle_Deg = state_.angle_Rad * params_.rad_to_deg;
+            state_.velocity_Rad = uint_to_float(v_int, params_.V_MIN, params_.V_MAX, 12);
+            state_.torque_Nm = uint_to_float(t_int, params_.T_MIN, params_.T_MAX, 12);
+            state_.temperature_C = (double)data[6];
         }
 
         /**
@@ -85,6 +88,15 @@ namespace arm_hardware_interface::motor_drivers::DM
         {
             for (int i = 0; i < 7; i++) data[i] = 0xFF;
             data[7] = 0xFD;
+        }
+
+        /**
+         * @brief Get Clear Errors command frame
+         */
+        void get_clear_errors_command(uint8_t data[8])
+        {
+            for (int i = 0; i < 7; i++) data[i] = 0xFF;
+            data[7] = 0xFB;
         }
 
         /**
@@ -123,14 +135,23 @@ namespace arm_hardware_interface::motor_drivers::DM
     public:
         J4310() : DmMotor(Parameters(-12.56f, 12.56f, -30.0f, 30.0f, -3.0f, 3.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
     };
-
+    
     /**
      * @brief J4340 Motor class
      */
     class J4340 : public DmMotor
     {
     public:
-        J4340() : DmMotor(Parameters(-3.14f, 3.14f, -50.0f, 50.0f, -9.0f, 9.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
+        J4340() : DmMotor(Parameters(-12.56f, 12.56f, -50.0f, 50.0f, -9.0f, 9.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
+    };
+
+    /**
+     * @brief J8009 Motor class
+     */
+    class J8009 : public DmMotor
+    {
+    public:
+        J8009() : DmMotor(Parameters(-12.56f, 12.56f, -50.0f, 50.0f, -20.0f, 20.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
     };
 }
 

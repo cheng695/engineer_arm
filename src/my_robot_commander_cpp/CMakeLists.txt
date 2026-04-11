@@ -15,6 +15,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(my_robot_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 # Define executable
 add_executable(commander_node src/commander_template.cpp)
@@ -33,6 +34,7 @@ ament_target_dependencies(commander_node
   tf2_geometry_msgs
   example_interfaces
   my_robot_interfaces
+  sensor_msgs
 )
 
 

@@ -8,32 +8,43 @@
 namespace arm_hardware_interface::motor_drivers
 {
     /**
-     * @brief Base class for motors, containing common data structures.
-     * Refactored from embedded version to be hardware-agnostic.
+     * @brief Runtime state snapshot of a motor.
+     */
+    struct MotorState
+    {
+        double angle_Deg = 0.0;
+        double angle_Rad = 0.0;
+        double velocity_Rad = 0.0;
+        double velocity_Rpm = 0.0;
+        double current_A = 0.0;
+        double torque_Nm = 0.0;
+        double temperature_C = 0.0;
+
+        double last_angle = 0.0;
+        double add_angle = 0.0;
+        uint8_t error_code = 0;
+    };
+
+    /**
+     * @brief Hardware configuration and tuning parameters for a motor.
+     */
+    struct MotorConfig
+    {
+        uint32_t can_id = 0;
+        std::string bus_name = "can1";
+        float kp = 0.0f;
+        float kd = 0.3f;
+    };
+
+    /**
+     * @brief Base class for motors, representing a single hardware resource.
      */
     class MotorBase
     {
     protected:
-        struct UnitData
-        {
-            double angle_Deg = 0.0;
-            double angle_Rad = 0.0;
-            double velocity_Rad = 0.0;
-            double velocity_Rpm = 0.0;
-            double current_A = 0.0;
-            double torque_Nm = 0.0;
-            double temperature_C = 0.0;
-
-            double last_angle = 0.0;
-            double add_angle = 0.0;
-        };
-
-        UnitData unit_data_;
-        bool is_Enabled = false;
-        uint32_t can_id_ = 0;
-        std::string bus_name_ = "can1";
-        float kp_ = 50.0f; // Default Kp
-        float kd_ = 1.0f;  // Default Kd
+        MotorState state_;
+        MotorConfig config_;
+        bool is_enabled_ = false;
 
     public:
         MotorBase() = default;
@@ -42,31 +53,35 @@ namespace arm_hardware_interface::motor_drivers
         // Abstract methods for motor-specific protocol logic
         virtual void get_enable_command(uint8_t data[8]) = 0;
         virtual void get_disable_command(uint8_t data[8]) = 0;
+        virtual void get_clear_errors_command(uint8_t data[8]) = 0;
         virtual void pack_mit_command(float pos, float vel, float kp, float kd, float torque, uint8_t data[8]) = 0;
         virtual void parse_feedback(const uint8_t data[8]) = 0;
 
-        // Common getters
-        uint32_t getCanId() const { return can_id_; }
-        void setCanId(uint32_t id) { can_id_ = id; }
+        // Accessors
+        MotorConfig& config() { return config_; }
+        const MotorConfig& config() const { return config_; }
+        
+        MotorState& state() { return state_; }
+        const MotorState& state() const { return state_; }
 
-        std::string getBusName() const { return bus_name_; }
-        void setBusName(const std::string& name) { bus_name_ = name; }
+        bool isEnabled() const { return is_enabled_; }
+        void setEnabled(bool enabled) { is_enabled_ = enabled; }
 
-        float getKp() const { return kp_; }
-        void setKp(float kp) { kp_ = kp; }
+        // Helper accessors for convenience in the interface loop
+        uint32_t getCanId() const { return config_.can_id; }
+        void setCanId(uint32_t id) { config_.can_id = id; }
 
-        float getKd() const { return kd_; }
-        void setKd(float kd) { kd_ = kd; }
-        double getAngleDeg() const { return unit_data_.angle_Deg; }
-        double getAngleRad() const { return unit_data_.angle_Rad; }
-        double getVelocityRad() const { return unit_data_.velocity_Rad; }
-        double getVelocityRpm() const { return unit_data_.velocity_Rpm; }
-        double getCurrent() const { return unit_data_.current_A; }
-        double getTorque() const { return unit_data_.torque_Nm; }
-        double getTemperature() const { return unit_data_.temperature_C; }
+        std::string getBusName() const { return config_.bus_name; }
+        void setBusName(const std::string& name) { config_.bus_name = name; }
 
-        bool isEnabled() const { return is_Enabled; }
-        void setEnabled(bool enabled) { is_Enabled = enabled; }
+        float getKp() const { return config_.kp; }
+        void setKp(float kp) { config_.kp = kp; }
+
+        float getKd() const { return config_.kd; }
+        void setKd(float kd) { config_.kd = kd; }
+        
+        double getAngleRad() const { return state_.angle_Rad; }
+        uint8_t getErrorCode() const { return state_.error_code; }
     };
 }
 

@@ -46,14 +46,24 @@ namespace arm_hardware_interface::motor_drivers::Dji
             int16_t current_raw = (data[4] << 8) | data[5];
             uint8_t temp = data[6];
 
-            unit_data_.angle_Rad = angle_raw * params_.encoder_to_rad;
-            unit_data_.angle_Deg = unit_data_.angle_Rad * 57.29577951308232;
-            unit_data_.velocity_Rad = velocity_raw * params_.rpm_to_radps;
-            unit_data_.velocity_Rpm = velocity_raw / params_.reduction_ratio;
-            unit_data_.torque_Nm = current_raw * params_.current_to_torque;
-            unit_data_.temperature_C = (double)temp;
+            state_.angle_Rad = angle_raw * params_.encoder_to_rad;
+            state_.angle_Deg = state_.angle_Rad * 57.29577951308232;
+            state_.velocity_Rad = velocity_raw * params_.rpm_to_radps;
+            state_.velocity_Rpm = velocity_raw / params_.reduction_ratio;
+            state_.torque_Nm = current_raw * params_.current_to_torque;
+            state_.temperature_C = (double)temp;
 
             // Simple multi-turn accumulation could be added here if needed
+        }
+
+        virtual void get_enable_command(uint8_t /*data*/[8]) override {}
+        virtual void get_disable_command(uint8_t /*data*/[8]) override {}
+        virtual void get_clear_errors_command(uint8_t /*data*/[8]) override {}
+        
+        virtual void pack_mit_command(float /*pos*/, float /*vel*/, float /*kp*/, float /*kd*/, float /*torque*/, uint8_t /*data*/[8]) override 
+        {
+            // DJI motors usually use current-based control via specific CAN IDs, 
+            // not MIT-style packed frames. This is a placeholder.
         }
 
         // Static factories

@@ -44,7 +44,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
   for (size_t i = 0; i < info_.joints.size(); i++)
   {
       // 1. 读取 CAN ID
-      if (info_.joints[i].parameters.find("can_id") == info_.joints[i].parameters.end()) {
+      if (info_.joints[i].parameters.find("can_id") == info_.joints[i].parameters.end()) 
+      {
           RCLCPP_FATAL(rclcpp::get_logger("ArmHardwareInterface"), "Joint '%s' missing 'can_id' parameter!", info_.joints[i].name.c_str());
           return hardware_interface::CallbackReturn::ERROR;
       }
@@ -52,37 +53,47 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
 
       // 2. 读取总线名称 (can0, can1, etc.)
       std::string bus_name = "can0";
-      if (info_.joints[i].parameters.find("can_bus") != info_.joints[i].parameters.end()) {
+      if (info_.joints[i].parameters.find("can_bus") != info_.joints[i].parameters.end()) 
+      {
           bus_name = info_.joints[i].parameters.at("can_bus");
       }
       
       // 3. 读取电机型号参数 (motor_model)
       std::string model = "J4310"; // 默认值
-      if (info_.joints[i].parameters.find("motor_model") != info_.joints[i].parameters.end()) {
+      if (info_.joints[i].parameters.find("motor_model") != info_.joints[i].parameters.end()) 
+      {
           model = info_.joints[i].parameters.at("motor_model");
       }
 
       // 4. 读取 PID 增益 (kp, kd)
       float kp = 50.0f;
       float kd = 1.0f;
-      if (info_.joints[i].parameters.find("kp") != info_.joints[i].parameters.end()) {
+      if (info_.joints[i].parameters.find("kp") != info_.joints[i].parameters.end()) 
+      {
           kp = std::stof(info_.joints[i].parameters.at("kp"));
       }
-      if (info_.joints[i].parameters.find("kd") != info_.joints[i].parameters.end()) {
+      if (info_.joints[i].parameters.find("kd") != info_.joints[i].parameters.end()) 
+      {
           kd = std::stof(info_.joints[i].parameters.at("kd"));
       }
 
       std::shared_ptr<DmMotor> motor;
-      if (model == "J4310") {
+      if (model == "J4310") 
+      {
           motor = std::make_shared<J4310>();
-      } else if (model == "J4340") {
+      } 
+      else if (model == "J4340") 
+      {
           motor = std::make_shared<J4340>();
-      } else {
+      } 
+      else 
+      {
           RCLCPP_ERROR(rclcpp::get_logger("ArmHardwareInterface"), "Unknown motor model '%s' for joint '%s'!", model.c_str(), info_.joints[i].name.c_str());
           return hardware_interface::CallbackReturn::ERROR;
       }
       
-      if (motor) {
+      if (motor) 
+      {
           motor->setCanId(id);
           motor->setBusName(bus_name);
           motor->setKp(kp);
@@ -90,7 +101,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
           joints_motors.push_back(motor);
 
           // 5. 确保该总线的 Socket 实例已存在
-          if (can_buses.find(bus_name) == can_buses.end()) {
+          if (can_buses.find(bus_name) == can_buses.end()) 
+          {
               can_buses[bus_name] = std::make_shared<SocketCan>();
           }
       }
@@ -189,8 +201,21 @@ hardware_interface::return_type ArmHardwareInterface::read(
               joints_motors[i]->parse_feedback(frame.data);
               hw_states_[i] = joints_motors[i]->getAngleRad();
               
+              // 故障检测与记录
+              if (joints_motors[i]->getErrorCode() != 0) 
+              {
+                  static int error_log_count = 0;
+                  if (error_log_count++ % 100 == 0) 
+                  {
+                      RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"), 
+                          "Motor ID %u (Joint %zu) on %s reported ERROR CODE: 0x%02X", 
+                          joints_motors[i]->getCanId(), i+1, name.c_str(), joints_motors[i]->getErrorCode());
+                  }
+              }
+
               static int r_count = 0;
-              if (r_count++ % 100 == 0) {
+              if (r_count++ % 100 == 0) 
+              {
                   RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"), 
                       "Feedback matched %s ID %d: Pos=%.3f", name.c_str(), joints_motors[i]->getCanId(), hw_states_[i]);
               }
@@ -216,7 +241,8 @@ hardware_interface::return_type ArmHardwareInterface::write(
       can_buses[joints_motors[i]->getBusName()]->write_frame(joints_motors[i]->getCanId(), cmd_data);
       
       static int w_count = 0;
-      if (w_count++ % 100 == 0) {
+      if (w_count++ % 100 == 0) 
+      {
           RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"), 
               "Writing to %s ID %d: CmdPos=%.3f", joints_motors[i]->getBusName().c_str(), joints_motors[i]->getCanId(), hw_commands_[i]);
       }
