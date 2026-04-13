@@ -134,4 +134,13 @@
     <child link="link_ee"/>
   </joint>
 
+  <!-- ==================== gripper_center (TCP) ==================== -->
+  <link name="gripper_center"/>
+
+  <joint name="joint_gripper_center" type="fixed">
+    <origin xyz="0.10 0 0" rpy="0 0 0"/>
+    <parent link="gripper_base_link"/>
+    <child link="gripper_center"/>
+  </joint>
+
 </robot>

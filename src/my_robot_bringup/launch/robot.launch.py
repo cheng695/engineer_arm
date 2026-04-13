@@ -1,7 +1,8 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, TimerAction
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -51,7 +52,8 @@ def generate_launch_description():
         executable="ros2_control_node",
         parameters=[
             robot_description,
-            os.path.join(get_package_share_directory("my_robot_moveit_config"), "config", "ros2_controllers.yaml")
+            os.path.join(get_package_share_directory("my_robot_moveit_config"), "config", "ros2_controllers.yaml"),
+            {'use_sim_time': use_sim_time}
         ],
         output="screen",
     )
@@ -77,6 +79,7 @@ def generate_launch_description():
             moveit_config.robot_description_semantic,
             moveit_config.planning_pipelines,
             moveit_config.robot_description_kinematics,
+            {'use_sim_time': use_sim_time}
         ],
     )
 
@@ -99,6 +102,21 @@ def generate_launch_description():
         arguments=["gripper_controller", "--controller-manager", "/controller_manager"],
     )
 
+    # Sequencing logic to prevent Controller Manager freeze
+    spawn_arm_controller_event = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[arm_controller_spawner]
+        )
+    )
+
+    spawn_gripper_controller_event = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[gripper_controller_spawner]
+        )
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
@@ -115,6 +133,6 @@ def generate_launch_description():
         move_group_node,
         rviz_node,
         joint_state_broadcaster_spawner,
-        arm_controller_spawner,
-        gripper_controller_spawner,
+        spawn_arm_controller_event,
+        spawn_gripper_controller_event,
     ])
