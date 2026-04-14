@@ -17,40 +17,40 @@
         <command_interface name="position"/>
         <state_interface name="position"/>
         <param name="can_id">1</param>
-        <param name="motor_model">J4310</param>
+        <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
-        <param name="kp">60.0</param>
-        <param name="kd">0.5</param>
+        <param name="kp">120.0</param>
+        <param name="kd">4.0</param>
       </joint>
 
       <joint name="joint2">
         <command_interface name="position"/>
         <state_interface name="position"/>
         <param name="can_id">2</param>
-        <param name="motor_model">J4340</param>
-        <param name="can_bus">can1</param>
-        <param name="kp">50.0</param>
-        <param name="kd">1.0</param>
+        <param name="motor_model">J8009</param>
+        <param name="can_bus">can0</param>
+        <param name="kp">120.0</param>
+        <param name="kd">4.0</param>
       </joint>
 
       <joint name="joint3">
         <command_interface name="position"/>
         <state_interface name="position"/>
         <param name="can_id">3</param>
-        <param name="motor_model">J4340</param>
-        <param name="can_bus">can1</param>
-        <param name="kp">50.0</param>
-        <param name="kd">1.0</param>
+        <param name="motor_model">J8009</param>
+        <param name="can_bus">can0</param>
+        <param name="kp">120.0</param>
+        <param name="kd">4.0</param>
       </joint>
 
       <joint name="joint4">
         <command_interface name="position"/>
         <state_interface name="position"/>
         <param name="can_id">4</param>
-        <param name="motor_model">J4310</param>
-        <param name="can_bus">can1</param>
-        <param name="kp">50.0</param>
-        <param name="kd">1.0</param>
+        <param name="motor_model">J4340</param>
+        <param name="can_bus">can0</param>
+        <param name="kp">60.0</param>
+        <param name="kd">3.0</param>
       </joint>
 
       <!-- J5-J7 使用 can0 -->
@@ -58,10 +58,10 @@
         <command_interface name="position"/>
         <state_interface name="position"/>
         <param name="can_id">5</param>
-        <param name="motor_model">J4310</param>
-        <param name="can_bus">can0</param>
-        <param name="kp">50.0</param>
-        <param name="kd">1.0</param>
+        <param name="motor_model">J4340</param>
+        <param name="can_bus">can1</param>
+        <param name="kp">60.0</param>
+        <param name="kd">3.0</param>
       </joint>
 
       <joint name="joint6">
@@ -69,8 +69,8 @@
         <state_interface name="position"/>
         <param name="can_id">6</param>
         <param name="motor_model">J4310</param>
-        <param name="can_bus">can0</param>
-        <param name="kp">50.0</param>
+        <param name="can_bus">can1</param>
+        <param name="kp">60.0</param>
         <param name="kd">1.0</param>
       </joint>
 
@@ -79,8 +79,8 @@
         <state_interface name="position"/>
         <param name="can_id">7</param>
         <param name="motor_model">J4310</param>
-        <param name="can_bus">can0</param>
-        <param name="kp">50.0</param>
+        <param name="can_bus">can1</param>
+        <param name="kp">60.0</param>
         <param name="kd">1.0</param>
       </joint>
 

@@ -4,14 +4,17 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "rclcpp/macros.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 namespace arm_hardware_interface
 {
@@ -40,9 +43,17 @@ public:
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  // Parameters for the hardware
   std::vector<double> hw_commands_;
+  std::vector<double> hw_commands_vel_;
   std::vector<double> hw_states_;
+  std::vector<double> hw_states_vel_;
+
+  // Motor power control
+  std::atomic<bool> motors_enabled_{false};
+  std::atomic<bool> enable_requested_{false};
+  std::atomic<bool> disable_requested_{false};
+  rclcpp::Node::SharedPtr internal_node_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
 };
 
 }  // namespace arm_hardware_interface

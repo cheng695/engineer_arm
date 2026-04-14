@@ -81,6 +81,7 @@ namespace arm_hardware_interface::motor_drivers
         void setKd(float kd) { config_.kd = kd; }
         
         double getAngleRad() const { return state_.angle_Rad; }
+        double getVelocityRad() const { return state_.velocity_Rad; }
         uint8_t getErrorCode() const { return state_.error_code; }
     };
 }

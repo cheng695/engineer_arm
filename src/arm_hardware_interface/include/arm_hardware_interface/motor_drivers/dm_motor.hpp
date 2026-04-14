@@ -133,7 +133,7 @@ namespace arm_hardware_interface::motor_drivers::DM
     class J4310 : public DmMotor
     {
     public:
-        J4310() : DmMotor(Parameters(-12.56f, 12.56f, -30.0f, 30.0f, -3.0f, 3.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
+        J4310() : DmMotor(Parameters(-3.14f, 3.14f, -30.0f, 30.0f, -3.0f, 3.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
     };
     
     /**
@@ -142,7 +142,7 @@ namespace arm_hardware_interface::motor_drivers::DM
     class J4340 : public DmMotor
     {
     public:
-        J4340() : DmMotor(Parameters(-12.56f, 12.56f, -50.0f, 50.0f, -9.0f, 9.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
+        J4340() : DmMotor(Parameters(-3.14f, 3.14f, -50.0f, 50.0f, -9.0f, 9.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
     };
 
     /**
@@ -151,7 +151,7 @@ namespace arm_hardware_interface::motor_drivers::DM
     class J8009 : public DmMotor
     {
     public:
-        J8009() : DmMotor(Parameters(-12.56f, 12.56f, -50.0f, 50.0f, -20.0f, 20.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
+        J8009() : DmMotor(Parameters(-3.14f, 3.14f, -50.0f, 50.0f, -20.0f, 20.0f, 0.0f, 500.0f, 0.0f, 5.0f)) {}
     };
 }
 

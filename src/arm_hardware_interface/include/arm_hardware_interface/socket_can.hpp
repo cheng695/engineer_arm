@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cstring>
+#include <fcntl.h>
 
 namespace arm_hardware_interface
 {
@@ -34,11 +35,9 @@ namespace arm_hardware_interface
 
             if (bind(socket_fd_, (struct sockaddr *)&addr, sizeof(addr)) < 0) return false;
 
-            // Set non-blocking
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = 1000; // 1ms timeout for safety
-            setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+            // Set true non-blocking mode
+            int flags = fcntl(socket_fd_, F_GETFL, 0);
+            fcntl(socket_fd_, F_SETFL, flags | O_NONBLOCK);
 
             return true;
         }
