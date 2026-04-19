@@ -1,41 +1,125 @@
 /**:
   ros__parameters:
-    moveit_servo: # Re-adding the namespace for safety and standard loading
-      command_in_type: "speed_units" 
-      scale:
-        linear: 0.5
-        rotational: 2.0
-        joint: 2.0
-      
+    # MoveIt Servo 参数命名空间。
+    # 作用：集中管理 Servo 的输入/输出、控制频率与安全阈值。
+    moveit_servo:
+      # ===== 输入/输出通道层 =====
+      # 输入命令语义类型。
+      # 作用：声明输入按“速度单位”解释；调错会导致命令尺度不符合预期。
+      command_in_type: "speed_units"
+
+      # 输出命令类型。
+      # 作用：Servo 最终输出为 JointTrajectory，供控制器执行。
       command_out_type: trajectory_msgs/JointTrajectory
 
-      cartesian_command_in_topic: "/delta_twist_cmds" 
+      # 笛卡尔速度输入 topic（与 commander_template.cpp 的 twist_pub_ 对应）。
+      # 改大/改小无意义；改名字会导致发布端与订阅端断连。
+      cartesian_command_in_topic: "/delta_twist_cmds"
+
+      # 关节速度输入 topic（与 commander_template.cpp 的 joint_pub_ 对应）。
+      # 改名字后需同步修改发布端，否则关节模式无输入。
       joint_command_in_topic: "/delta_joint_cmds"
+
+      # Servo 输出到控制器的 topic（与 commander_template.cpp 的 debug_sub_ 对应）。
+      # 改名字后需同步控制器和调试订阅，否则看不到输出/无法执行。
       command_out_topic: "/arm_controller/joint_trajectory"
+
+      # 关节状态输入 topic。
+      # 作用：Servo 读取当前状态；错误会导致状态估计异常。
       joint_topic: "joint_states"
+
+      # 监控规划场景 topic。
+      # 作用：用于碰撞监控；改错会削弱或失效场景感知。
       monitored_planning_scene_topic: "/monitored_planning_scene"
 
-      publish_period: 0.005 
-      low_latency_mode: false 
-      low_pass_filter_coeff: 1.5
-      
-      publish_joint_positions: true
-      publish_joint_velocities: true
-      publish_joint_accelerations: false
-      publish_delay: 0.005 
+      # ===== 速度与滤波层 =====
+      scale:
+        # 笛卡尔线速度倍率。
+        # 调大：移动更快；调小：更稳更细腻。
+        linear: 0.5
 
+        # 笛卡尔角速度倍率。
+        # 调大：旋转更灵敏；调小：旋转更平滑。
+        rotational: 5.0
+
+        # 关节速度倍率。
+        # 调大：关节 jog 更快；调小：更容易精细对位。
+        joint: 5.0
+
+      # Servo 发布周期（秒）。
+      # 调小：频率更高、响应更快；调大：负载更低但响应变慢。
+      publish_period: 0.001
+
+      # 低延迟模式开关。
+      # true 响应更快但抗噪更弱；false 更稳健。
+      low_latency_mode: false
+
+      # 低通滤波系数。
+      # 调大：更平滑但滞后更明显；调小：更跟手但可能更抖。
+      low_pass_filter_coeff: 1.5
+
+      # ===== 输出内容层 =====
+      # 是否在输出轨迹中包含关节位置。
+      publish_joint_positions: true
+
+      # 是否在输出轨迹中包含关节速度。
+      publish_joint_velocities: true
+
+      # 是否在输出轨迹中包含关节加速度。
+      # 关节控制器若不需要加速度可保持 false。
+      publish_joint_accelerations: false
+
+      # 输出发布延迟（秒）。
+      # 调大可能更稳但增加延迟；调小更实时。
+      publish_delay: 0.005
+
+      # ===== 坐标与规划组层 =====
+      # Servo 作用的 MoveIt 规划组。
+      # 需与 SRDF 中 group 名一致（当前为 arm）。
       move_group_name: arm
+
+      # 规划参考坐标系。
       planning_frame: base_link
+
+      # 末端执行器坐标系名。
+      # 与 commander 中工具坐标系控制逻辑直接相关。
       ee_frame_name: gripper_center
+
+      # 机器人命令解释坐标系。
       robot_link_command_frame: base_link
 
+      # ===== 安全保护层 =====
+      # 是否开启碰撞检查。
+      # true 更安全；false 响应可能更直接但风险高。
       check_collisions: true
+
+      # 碰撞检查策略（阈值策略）。
       collision_check_type: threshold
+
+      # 自碰撞接近阈值（米）。
+      # 调大更保守；调小更激进。
       self_collision_proximity_threshold: 0.02
+
+      # 场景碰撞接近阈值（米）。
+      # 调大更保守；调小更靠近障碍物。
       scene_collision_proximity_threshold: 0.02
+
+      # 碰撞检查频率（Hz）。
+      # 调高更及时但算力占用增大。
       collision_check_rate: 10.0
-      lower_singularity_threshold:  17.0
+
+      # 奇异位姿减速阈值。
+      # 低于该阈值附近开始更强保护。
+      lower_singularity_threshold: 17.0
+
+      # 奇异位姿硬停止阈值。
+      # 达到后触发强制保护停止。
       hard_stop_singularity_threshold: 200.0
 
-      incoming_command_timeout: 0.5 
+      # 输入命令超时（秒）。
+      # 超时后停止跟随，避免旧命令持续生效。
+      incoming_command_timeout: 0.5
+
+      # 关节极限安全裕量（弧度）。
+      # 调大更保守；调小可用范围更大但越界风险更高。
       joint_limit_margin: 0.001

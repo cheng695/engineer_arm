@@ -15,7 +15,9 @@
 
   <!-- Include ros2_control configuration -->
   <xacro:include filename="$(find arm_description)/urdf/arm.ros2_control.xacro"/>
-  <xacro:arm_ros2_control name="ArmControl" use_mock_hardware="$(arg use_mock_hardware)"/>
+  <xacro:arm_ros2_control 
+    name="ArmControl" 
+    use_mock_hardware="$(arg use_mock_hardware)"/>
 
   <!-- Connect chassis to arm -->
   <joint name="chassis_to_arm_joint" type="fixed">

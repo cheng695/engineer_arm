@@ -38,6 +38,58 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
   hw_commands_.resize(info_.joints.size(), 0.0);
   hw_states_vel_.resize(info_.joints.size(), 0.0);
   hw_commands_vel_.resize(info_.joints.size(), 0.0);
+  hw_states_eff_.resize(info_.joints.size(), 0.0);
+  hw_commands_eff_.resize(info_.joints.size(), 0.0);
+  gravity_compensation_eff_.resize(info_.joints.size(), 0.0);
+
+  // --- Pinocchio 动力学库初始化 ---
+  try {
+    std::string urdf_xml;
+    std::string urdf_path;
+    if (info_.hardware_parameters.find("robot_description") != info_.hardware_parameters.end()) 
+    {
+      urdf_xml = info_.hardware_parameters.at("robot_description");
+    }
+    if (info_.hardware_parameters.find("robot_description_path") != info_.hardware_parameters.end()) 
+    {
+      urdf_path = info_.hardware_parameters.at("robot_description_path");
+    }
+
+    model_ = std::make_unique<pinocchio::Model>();
+    if (!urdf_xml.empty()) 
+    {
+      pinocchio::urdf::buildModelFromXML(urdf_xml, *model_);
+      pinocchio_initialized_ = true;
+    } 
+    else if (!urdf_path.empty()) 
+    {
+      // 注意：Pinocchio 需要的是生成的 URDF 文件，而不是 XACRO。 
+      // 这仅在路径指向生成的 URDF 文件时才工作。
+      if (urdf_path.find(".xacro") != std::string::npos) 
+      {
+        RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"), "robot_description_path 指向了 .xacro 文件。Pinocchio 需要 .urdf。重力补偿已禁用。");
+      } 
+      else 
+      {
+        pinocchio::urdf::buildModel(urdf_path, *model_);
+        pinocchio_initialized_ = true;
+      }
+    }
+
+    if (pinocchio_initialized_) 
+    {
+      data_ = std::make_unique<pinocchio::Data>(*model_);
+      RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"), "Pinocchio 模型初始化成功 (nq=%d)。重力补偿已启用。", model_->nq);
+    } 
+    else 
+    {
+      RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"), "既没有找到 robot_description 也没有找到有效的 URDF 路径。重力补偿已禁用。");
+    }
+  } 
+  catch (const std::exception & e) 
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("ArmHardwareInterface"), "Pinocchio 初始化失败: %s", e.what());
+  }
 
   // 清理旧数据，防止重复初始化
   joints_motors.clear();
@@ -120,6 +172,7 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
 
 std::vector<hardware_interface::StateInterface> ArmHardwareInterface::export_state_interfaces()
 {
+  // 导出状态接口（给上层控制器读取）
   std::vector<hardware_interface::StateInterface> state_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++)
   {
@@ -127,6 +180,8 @@ std::vector<hardware_interface::StateInterface> ArmHardwareInterface::export_sta
       info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_states_[i]));
     state_interfaces.emplace_back(hardware_interface::StateInterface(
       info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_states_vel_[i]));
+    state_interfaces.emplace_back(hardware_interface::StateInterface(
+      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_states_eff_[i]));
   }
 
   return state_interfaces;
@@ -134,6 +189,7 @@ std::vector<hardware_interface::StateInterface> ArmHardwareInterface::export_sta
 
 std::vector<hardware_interface::CommandInterface> ArmHardwareInterface::export_command_interfaces()
 {
+  // 导出命令接口（给上层控制器写入）
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++)
   {
@@ -141,6 +197,8 @@ std::vector<hardware_interface::CommandInterface> ArmHardwareInterface::export_c
       info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_commands_[i]));
     command_interfaces.emplace_back(hardware_interface::CommandInterface(
       info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_commands_vel_[i]));
+    command_interfaces.emplace_back(hardware_interface::CommandInterface(
+      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_commands_eff_[i]));
   }
 
   return command_interfaces;
@@ -149,23 +207,23 @@ std::vector<hardware_interface::CommandInterface> ArmHardwareInterface::export_c
 hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // Open all CAN buses
+  // 激活阶段：打开所有配置的 CAN 总线
   for (auto const& [name, bus] : can_buses) 
   {
-    RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"), "Opening CAN bus: %s", name.c_str());
+    RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"), "正在打开 CAN 总线: %s", name.c_str());
     if (!bus->open(name)) 
     {
-      RCLCPP_ERROR(rclcpp::get_logger("ArmHardwareInterface"), "Failed to open %s!", name.c_str());
+      RCLCPP_ERROR(rclcpp::get_logger("ArmHardwareInterface"), "打开总线 %s 失败!", name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
     }
   }
 
-  // DO NOT enable motors here. Wait for Xbox button.
+  // 不要在此处使能电机。等待手柄按钮点火。
   motors_enabled_ = false;
   RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
-      "[POWER] CAN buses opened. Motors are OFF. Press Xbox button to enable.");
+      "[POWER] CAN 总线已打开。电机当前处于关闭状态。请按下手柄 Xbox 键使能电机。");
 
-  // Create internal node for motor enable/disable subscription
+  // 创建内部节点用于电机使能/失能话题订阅
   if (!internal_node_) {
     internal_node_ = rclcpp::Node::make_shared("arm_hw_internal");
     enable_sub_ = internal_node_->create_subscription<std_msgs::msg::Bool>(
@@ -203,12 +261,14 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_deactivate(
 hardware_interface::return_type ArmHardwareInterface::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  // Process enable/disable topic callbacks
-  if (internal_node_) {
+  // 处理电机使能/失能话题的回调
+  if (internal_node_) 
+  {
     rclcpp::spin_some(internal_node_);
   }
 
   struct can_frame frame;
+  // 遍历所有 CAN 总线读取反馈帧
   for (auto const& [name, bus] : can_buses) 
   {
     while (bus->read_frame(frame) > 0) 
@@ -222,9 +282,11 @@ hardware_interface::return_type ArmHardwareInterface::read(
 
           if ((id_match || payload_match) && joints_motors[i]->getBusName() == name)
           {
+              // 解析电机反馈报文（弧度、速度、力矩）
               joints_motors[i]->parse_feedback(frame.data);
               hw_states_[i] = joints_motors[i]->getAngleRad();
               hw_states_vel_[i] = joints_motors[i]->getVelocityRad();
+              hw_states_eff_[i] = joints_motors[i]->getTorqueNm();
               
               if (joints_motors[i]->getErrorCode() != 0) 
               {
@@ -249,13 +311,34 @@ hardware_interface::return_type ArmHardwareInterface::read(
     }
   }
 
-  // --- KINEMATIC DECOUPLING (J2 & J3 Belt Coupling) ---
-  // J2 Index: 1, J3 Index: 2
-  // Formula: J3_actual = -(J3_motor - 0.986 * J2_actual)
+  // --- 运动学解耦 (J2 & J3 同步带耦合处理) ---
+  // J2 索引: 1, J3 索引: 2
+  // 公式: J3_实际角度 = -(J3_电机值 - 0.986 * J2_实际角度)
   double raw_j3 = hw_states_[2];
   double raw_j3_vel = hw_states_vel_[2];
   hw_states_[2] = -(raw_j3 - 0.986 * hw_states_[1]);
   hw_states_vel_[2] = -(raw_j3_vel - 0.986 * hw_states_vel_[1]);
+
+  // --- Pinocchio 重力补偿计算 ---
+  if (pinocchio_initialized_) {
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
+    // 将 hw_states_ 映射到 Pinocchio 的 q 向量。 
+    // 假设关节名称与模型关节名称匹配。
+    // 为简单起见，我们假设前 n 个关节是匹配的。
+    for (size_t i = 0; i < std::min((size_t)model_->nq, hw_states_.size()); ++i) {
+      q[i] = hw_states_[i];
+    }
+    
+    // 使用 RNEA 计算重力（速度 v=0, 加速度 a=0）
+    Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+    Eigen::VectorXd a = Eigen::VectorXd::Zero(model_->nv);
+    pinocchio::rnea(*model_, *data_, q, v, a);
+    
+    // 存储重力扭矩（RNEA 在 v=0, a=0 时的结果存储在 data_->tau 中）
+    for (size_t i = 0; i < std::min((size_t)model_->nv, gravity_compensation_eff_.size()); ++i) {
+      gravity_compensation_eff_[i] = data_->tau[i];
+    }
+  }
 
   return hardware_interface::return_type::OK;
 }
@@ -264,19 +347,19 @@ hardware_interface::return_type ArmHardwareInterface::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   // ====================================================================
-  // Phase 0: Process Enable/Disable Requests (from Xbox button topic)
+  // 阶段 0: 处理使能/失能请求 (来自手柄按键话题)
   // ====================================================================
   if (enable_requested_.exchange(false))
   {
-    // ANTI-JUMP: Sync commands to current positions BEFORE enabling
+    // 防跳跃：在使能前，将目标命令同步为当前实际位置
     for (size_t i = 0; i < joints_motors.size(); i++)
     {
       hw_commands_[i] = hw_states_[i];
     }
     RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
-        "[POWER] Position synced. Commands locked to current state.");
+        "[POWER] 位置已同步。命令已锁定到当前状态。");
 
-    // Now send enable to all motors (interleaved)
+    // 现在向所有电机发送使能指令（交替发送，避免拥堵）
     for (auto & motor : joints_motors)
     {
       uint8_t cmd[8];
@@ -286,7 +369,7 @@ hardware_interface::return_type ArmHardwareInterface::write(
     }
     motors_enabled_ = true;
     RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
-        "[POWER] ALL MOTORS ENABLED (Torque ON)");
+        "[POWER] 所有电机已使能 (扭矩已开启)");
   }
 
   if (disable_requested_.exchange(false))
@@ -300,15 +383,15 @@ hardware_interface::return_type ArmHardwareInterface::write(
     }
     motors_enabled_ = false;
     RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
-        "[POWER] ALL MOTORS DISABLED (Torque OFF)");
+        "[POWER] 所有电机已失能 (扭矩已关闭)");
   }
 
-  // If motors are not enabled, send a Passive Probe (KP=0, KD=0) to trigger feedback
+  // 如果电机未使能，发送被动探测帧 (KP=0, KD=0) 以触发反馈回复
   if (!motors_enabled_) {
     for (auto & motor : joints_motors) {
       uint8_t probe[8];
-      // Sending Target=0, Vel=0, KP=0, KD=0, Torque=0
-      // This will not apply torque but will force the motor to respond with its current state
+      // 发送 目标=0, 速度=0, KP=0, KD=0, 扭矩=0
+      // 这不会产生扭矩，但会强制电机回复当前状态
       motor->pack_mit_command(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, probe);
       can_buses[motor->getBusName()]->write_frame(motor->getCanId(), probe);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -316,47 +399,47 @@ hardware_interface::return_type ArmHardwareInterface::write(
     return hardware_interface::return_type::OK;
   }
   // ====================================================================
-  // Phase 1: Error Recovery
-  // If any motor reports error_code != 1 (1 = normal), perform:
-  //   clear_errors → 1ms → disable → 1ms → enable
+  // 阶段 1: 错误恢复
+  // 如果任何电机报告 error_code != 1 (1 = 正常), 执行:
+  //   清除错误 -> 1ms -> 失能 -> 1ms -> 使能
   // ====================================================================
   for (size_t i = 0; i < joints_motors.size(); i++)
   {
     uint8_t err = joints_motors[i]->getErrorCode();
-    if (err != 0 && err != 1) // 0 = no feedback yet, 1 = normal
+    if (err != 0 && err != 1) // 0 = 尚未获取反馈, 1 = 正常
     {
       RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
-          "[RECOVERY] Motor ID %u on %s: error_code=0x%02X, initiating recovery...",
+          "[RECOVERY] 电机 ID %u 在总线 %s 上: error_code=0x%02X, 启动恢复序列...",
           joints_motors[i]->getCanId(), joints_motors[i]->getBusName().c_str(), err);
 
       auto& bus = can_buses[joints_motors[i]->getBusName()];
       uint32_t id = joints_motors[i]->getCanId();
       uint8_t cmd[8];
 
-      // Step 1: Clear Error
+      // 步骤 1: 清除错误
       joints_motors[i]->get_clear_errors_command(cmd);
       bus->write_frame(id, cmd);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-      // Step 2: Disable
+      // 步骤 2: 失能
       joints_motors[i]->get_disable_command(cmd);
       bus->write_frame(id, cmd);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-      // Step 3: Re-Enable
+      // 步骤 3: 重新使能
       joints_motors[i]->get_enable_command(cmd);
       bus->write_frame(id, cmd);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
       RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"),
-          "[RECOVERY] Motor ID %u recovery sequence sent.", joints_motors[i]->getCanId());
+          "[RECOVERY] 电机 ID %u 恢复序列已发送。", joints_motors[i]->getCanId());
     }
   }
 
   // ====================================================================
-  // Phase 2: Interleaved CAN Write
-  // Group motors by bus, then alternate: bus0[0], bus1[0], bus0[1], bus1[1]...
-  // Insert 100μs between each frame to prevent TX mailbox overflow.
+  // 阶段 2: 交替式 CAN 写入
+  // 按总线分组电机，然后交叉发送：bus0[0], bus1[0], bus0[1], bus1[1]...
+  // 插入 100μs 延迟以防止 TX 邮箱溢出。
   // ====================================================================
   std::map<std::string, std::vector<size_t>> bus_groups;
   for (size_t i = 0; i < joints_motors.size(); i++)
@@ -367,14 +450,14 @@ hardware_interface::return_type ArmHardwareInterface::write(
     }
   }
 
-  // Find the maximum number of motors on any single bus
+  // 找到单条总线上最多的电机数量
   size_t max_depth = 0;
   for (auto const& [name, indices] : bus_groups)
   {
     if (indices.size() > max_depth) max_depth = indices.size();
   }
 
-  // Interleaved send: round-robin across buses
+  // 交叉发送：在不同总线之间轮询
   uint8_t cmd_data[8];
   for (size_t slot = 0; slot < max_depth; slot++)
   {
@@ -385,20 +468,29 @@ hardware_interface::return_type ArmHardwareInterface::write(
         size_t i = indices[slot];
         
         double target_pos = hw_commands_[i];
+        double target_vel = hw_commands_vel_[i];
         
-        // --- COMMAND COUPLING (J2 & J3 Belt Compensation) ---
-        // If it's Joint 3 (index 2), we need to reverse the decoupling formula:
+        // 最终力矩 = 控制器下达的力矩 + 重力补偿力矩
+        double target_eff = hw_commands_eff_[i] + gravity_compensation_eff_[i];
+        
+        // --- 命令解耦 (J2 & J3 同步带反向补偿) ---
+        // 如果是关节 3 (索引 2)，我们需要反转解耦公式:
         if (i == 2) {
             target_pos = -hw_commands_[2] + 0.986 * hw_commands_[1];
+            target_vel = -hw_commands_vel_[2] + 0.986 * hw_commands_vel_[1];
+            // 力矩是否也需要解耦？ 
+            // 通常只有 J3 电机扭矩作用于 J3 实际框架（如果 J2 固定）。
+            // 暂时假设简单的力矩“透传”。
+            target_eff = -hw_commands_eff_[2]; 
         }
 
         joints_motors[i]->pack_mit_command(
-            target_pos, 0.0f,
+            target_pos, static_cast<float>(target_vel),
             joints_motors[i]->getKp(), joints_motors[i]->getKd(),
-            0.0f, cmd_data);
+            static_cast<float>(target_eff), cmd_data);
         can_buses[bus_name]->write_frame(joints_motors[i]->getCanId(), cmd_data);
 
-        // Inter-frame delay: 100μs to let the CAN controller drain the TX mailbox
+        // 帧间延迟：100微秒，让 CAN 控制器排空 TX 邮箱
         std::this_thread::sleep_for(std::chrono::microseconds(100));
       }
     }
@@ -408,7 +500,7 @@ hardware_interface::return_type ArmHardwareInterface::write(
   if (w_count++ % 200 == 0)
   {
     RCLCPP_INFO(rclcpp::get_logger("ArmHardwareInterface"),
-        "[WRITE] Interleaved send complete. %zu motors across %zu buses.",
+        "[WRITE] 交叉发送完成。共 %zu 个电机分布在 %zu 条总线上。",
         joints_motors.size(), bus_groups.size());
   }
 

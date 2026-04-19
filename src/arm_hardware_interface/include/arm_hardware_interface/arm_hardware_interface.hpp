@@ -16,6 +16,13 @@
 #include "rclcpp_lifecycle/state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
+// Pinocchio includes
+#include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/algorithm/crba.hpp>
+#include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/multibody/model.hpp>
+#include <pinocchio/multibody/data.hpp>
+
 namespace arm_hardware_interface
 {
 class ArmHardwareInterface : public hardware_interface::SystemInterface
@@ -45,8 +52,10 @@ public:
 private:
   std::vector<double> hw_commands_;
   std::vector<double> hw_commands_vel_;
+  std::vector<double> hw_commands_eff_;
   std::vector<double> hw_states_;
   std::vector<double> hw_states_vel_;
+  std::vector<double> hw_states_eff_;
 
   // Motor power control
   std::atomic<bool> motors_enabled_{false};
@@ -54,6 +63,12 @@ private:
   std::atomic<bool> disable_requested_{false};
   rclcpp::Node::SharedPtr internal_node_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
+
+  // Pinocchio Model
+  std::unique_ptr<pinocchio::Model> model_;
+  std::unique_ptr<pinocchio::Data> data_;
+  std::vector<double> gravity_compensation_eff_;
+  bool pinocchio_initialized_{false};
 };
 
 }  // namespace arm_hardware_interface

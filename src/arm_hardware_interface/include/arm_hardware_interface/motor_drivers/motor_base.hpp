@@ -82,6 +82,7 @@ namespace arm_hardware_interface::motor_drivers
         
         double getAngleRad() const { return state_.angle_Rad; }
         double getVelocityRad() const { return state_.velocity_Rad; }
+        double getTorqueNm() const { return state_.torque_Nm; }
         uint8_t getErrorCode() const { return state_.error_code; }
     };
 }

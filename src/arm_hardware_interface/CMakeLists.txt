@@ -12,6 +12,8 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # Define hardware interface library
 add_library(${PROJECT_NAME} SHARED
@@ -29,6 +31,12 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rclcpp_lifecycle
   std_msgs
+)
+
+# Use target_link_libraries for non-ament packages
+target_link_libraries(${PROJECT_NAME}
+  pinocchio::pinocchio
+  Eigen3::Eigen
 )
 
 # Export plugin

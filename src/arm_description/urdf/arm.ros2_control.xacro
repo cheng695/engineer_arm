@@ -10,12 +10,18 @@
         <xacro:unless value="${use_mock_hardware}">
           <plugin>arm_hardware_interface/ArmHardwareInterface</plugin>
         </xacro:unless>
+        <!-- Pass the URDF path to the hardware interface for Pinocchio -->
+        <param name="robot_description_path">$(find my_robot_description)/urdf/my_robot.urdf.xacro</param>
       </hardware>
 
       <!-- J1-J4 使用 can1 -->
       <joint name="joint1">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">1</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
@@ -25,7 +31,11 @@
 
       <joint name="joint2">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">2</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
@@ -35,7 +45,11 @@
 
       <joint name="joint3">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">3</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
@@ -45,7 +59,11 @@
 
       <joint name="joint4">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">4</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">can0</param>
@@ -56,7 +74,11 @@
       <!-- J5-J7 使用 can0 -->
       <joint name="joint5">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">5</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">can1</param>
@@ -66,7 +88,11 @@
 
       <joint name="joint6">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">6</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">can1</param>
@@ -76,7 +102,11 @@
 
       <joint name="joint7">
         <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
         <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
         <param name="can_id">7</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">can1</param>
