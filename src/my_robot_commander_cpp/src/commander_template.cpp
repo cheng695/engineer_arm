@@ -46,6 +46,12 @@ class Commander
             arm_ = std::make_shared<MoveGroupInterface>(node_, "arm");
             gripper_ = std::make_shared<MoveGroupInterface>(node_, "gripper");
 
+            // 固定位姿规划执行速度/加速度缩放（1.0 = 使用关节上限比例）
+            arm_->setMaxVelocityScalingFactor(1.0);
+            arm_->setMaxAccelerationScalingFactor(0.5);
+            gripper_->setMaxVelocityScalingFactor(1.0);
+            gripper_->setMaxAccelerationScalingFactor(0.5);
+
             // 规划场景监视器（用于Servo获取状态/场景）
             psm_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(node_, "robot_description");
             
