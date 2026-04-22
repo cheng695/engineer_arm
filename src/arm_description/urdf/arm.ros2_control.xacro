@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="arm_ros2_control" params="name use_mock_hardware:=false">
+  <xacro:macro name="arm_ros2_control" params="name use_mock_hardware:=false gravity_compensation_mode:=off active_real_joints:=''">
     <ros2_control name="${name}" type="system">
       <hardware>
         <xacro:if value="${use_mock_hardware}">
@@ -12,6 +12,8 @@
         </xacro:unless>
         <!-- Pass the URDF path to the hardware interface for Pinocchio -->
         <param name="robot_description_path">$(find my_robot_description)/urdf/my_robot.urdf.xacro</param>
+        <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
+        <param name="active_real_joints">${active_real_joints}</param>
       </hardware>
 
       <!-- J1-J4 使用 can1 -->
@@ -25,8 +27,8 @@
         <param name="can_id">1</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
-        <param name="kp">120.0</param>
-        <param name="kd">4.0</param>
+        <param name="kp">0.0</param>
+        <param name="kd">0.0</param>
       </joint>
 
       <joint name="joint2">
@@ -39,8 +41,8 @@
         <param name="can_id">2</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
-        <param name="kp">120.0</param>
-        <param name="kd">4.0</param>
+        <param name="kp">0.1</param>
+        <param name="kd">0.1</param>
       </joint>
 
       <joint name="joint3">
@@ -53,8 +55,8 @@
         <param name="can_id">3</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">can0</param>
-        <param name="kp">120.0</param>
-        <param name="kd">4.0</param>
+        <param name="kp">0.1</param>
+        <param name="kd">0.1</param>
       </joint>
 
       <joint name="joint4">
@@ -67,8 +69,8 @@
         <param name="can_id">4</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">can0</param>
-        <param name="kp">60.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">0.1</param>
+        <param name="kd">0.1</param>
       </joint>
 
       <!-- J5-J7 使用 can0 -->
@@ -82,8 +84,8 @@
         <param name="can_id">5</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">can1</param>
-        <param name="kp">60.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">0.1</param>
+        <param name="kd">0.1</param>
       </joint>
 
       <joint name="joint6">
@@ -96,8 +98,8 @@
         <param name="can_id">6</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">can1</param>
-        <param name="kp">60.0</param>
-        <param name="kd">1.0</param>
+        <param name="kp">10.0</param>
+        <param name="kd">0.1</param>
       </joint>
 
       <joint name="joint7">
@@ -110,9 +112,18 @@
         <param name="can_id">7</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">can1</param>
-        <param name="kp">60.0</param>
-        <param name="kd">1.0</param>
+        <param name="kp">0.1</param>
+        <param name="kd">0.1</param>
       </joint>
+
+      <xacro:if value="${use_mock_hardware}">
+        <joint name="joint_right_finger">
+          <command_interface name="position"/>
+          <command_interface name="velocity"/>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:if>
 
     </ros2_control>
   </xacro:macro>

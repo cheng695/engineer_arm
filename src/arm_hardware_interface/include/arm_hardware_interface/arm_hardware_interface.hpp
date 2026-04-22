@@ -25,6 +25,13 @@
 
 namespace arm_hardware_interface
 {
+enum class GravityCompensationMode
+{
+  Off = 0,
+  Assist = 1,
+  GravityOnly = 2,
+};
+
 class ArmHardwareInterface : public hardware_interface::SystemInterface
 {
 public:
@@ -56,11 +63,14 @@ private:
   std::vector<double> hw_states_;
   std::vector<double> hw_states_vel_;
   std::vector<double> hw_states_eff_;
+  std::vector<bool> use_real_joint_io_;
 
   // Motor power control
   std::atomic<bool> motors_enabled_{false};
   std::atomic<bool> enable_requested_{false};
   std::atomic<bool> disable_requested_{false};
+  std::atomic<int> safe_zero_frames_after_enable_{0};
+  std::atomic<bool> velocity_commands_armed_{false};
   rclcpp::Node::SharedPtr internal_node_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
 
@@ -69,6 +79,7 @@ private:
   std::unique_ptr<pinocchio::Data> data_;
   std::vector<double> gravity_compensation_eff_;
   bool pinocchio_initialized_{false};
+  GravityCompensationMode gravity_mode_{GravityCompensationMode::Off};
 };
 
 }  // namespace arm_hardware_interface

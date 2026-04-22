@@ -20,6 +20,7 @@
 #include <moveit_servo/status_codes.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <std_msgs/msg/bool.hpp>
+#include <sstream>
 
 using MoveGroupInterface = moveit::planning_interface::MoveGroupInterface;
 using StringMsg = example_interfaces::msg::String;
@@ -199,8 +200,8 @@ class Commander
             // 丢弃过旧输入，减少延迟/卡顿导致的误动作
             if ((now - msg_time).seconds() > 0.5) return; 
 
-            // Xbox Guide键(Button 8)：切换电机扭矩使能
-            bool guide_pressed = (msg.buttons.size() > 8 && msg.buttons[8]);
+            // Button 9：切换电机扭矩使能
+            bool guide_pressed = (msg.buttons.size() > 9 && msg.buttons[9]);
             if (guide_pressed && !prev_guide_pressed_) 
             {
                 // 采用“上升沿触发”：避免长按时每帧重复翻转。
@@ -326,7 +327,28 @@ class Commander
 
                 if (joint_pub_) // 判断指针是否有效
                 {
-                    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000, "[TELEMETRY] 关节空间Jog控制中");
+                    std::ostringstream active_joints;
+                    bool first_active_joint = true;
+                    for (size_t i = 0; i < joint_msg->joint_names.size() && i < joint_msg->velocities.size(); ++i)
+                    {
+                        if (std::abs(joint_msg->velocities[i]) > 1e-3)
+                        {
+                            if (!first_active_joint) active_joints << ", ";
+                            active_joints << joint_msg->joint_names[i]
+                                          << "=" << joint_msg->velocities[i];
+                            first_active_joint = false;
+                        }
+                    }
+
+                    if (first_active_joint)
+                    {
+                        active_joints << "none";
+                    }
+
+                    RCLCPP_INFO_THROTTLE(
+                        node_->get_logger(), *node_->get_clock(), 500,
+                        "[TELEMETRY] 关节空间Jog控制中: %s",
+                        active_joints.str().c_str());
                     joint_pub_->publish(std::move(joint_msg)); // 发布关节空间Jog控制
                 }
             } 
