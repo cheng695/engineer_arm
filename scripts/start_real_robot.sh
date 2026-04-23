@@ -177,7 +177,13 @@ set -u
 
 log "Launching real robot bringup..."
 log "use_mock_hardware:=false gravity_compensation_mode:=${GRAVITY_MODE} active_real_joints:=${ACTIVE_REAL_JOINTS:-<all>}"
-exec ros2 launch my_robot_bringup robot.launch.py \
-  use_mock_hardware:=false \
-  gravity_compensation_mode:="${GRAVITY_MODE}" \
-  active_real_joints:="${ACTIVE_REAL_JOINTS}"
+launch_args=(
+  use_mock_hardware:=false
+  gravity_compensation_mode:="${GRAVITY_MODE}"
+)
+
+if [[ -n "${ACTIVE_REAL_JOINTS}" ]]; then
+  launch_args+=(active_real_joints:="${ACTIVE_REAL_JOINTS}")
+fi
+
+exec ros2 launch my_robot_bringup robot.launch.py "${launch_args[@]}"

@@ -42,6 +42,8 @@ class Commander
         {   
             node_ = node;
             RCLCPP_INFO(node_->get_logger(), "[BOOT] V5.2 Commander 启动完成");
+            global_joint_mode_ = true;
+            RCLCPP_WARN(node_->get_logger(), "[MODE] 笛卡尔控制已全局屏蔽，当前固定为关节直通模式。");
 
             // 两个规划组：机械臂 + 夹爪
             arm_ = std::make_shared<MoveGroupInterface>(node_, "arm");
@@ -86,14 +88,13 @@ class Commander
                 // 实时控制输出：笛卡尔速度 / 关节速度
                 twist_pub_ = node_->create_publisher<TwistStamped>(servo_parameters_->cartesian_command_in_topic, 10);
                 joint_pub_ = node_->create_publisher<JointJog>(servo_parameters_->joint_command_in_topic, 10);
+                direct_joint_pub_ = node_->create_publisher<FloatArray>("/arm_direct_joint_vel_cmds", 10);
 
                 // 调试订阅：可用于观察Servo输出轨迹
                 debug_sub_ = node_->create_subscription<trajectory_msgs::msg::JointTrajectory>(
                     servo_parameters_->command_out_topic, 10,
                     [this](const trajectory_msgs::msg::JointTrajectory::SharedPtr msg) 
                     {
-                        // 这里只做“是否有有效输出”的观察点，不参与控制闭环。
-                        // 如需排查抖动/限速问题，可在此打印每个关节的 velocity / position。
                         if (!msg->points.empty() && !msg->points[0].velocities.empty()) 
                         {
                             // double v0 = msg->points[0].velocities[0];
@@ -242,19 +243,12 @@ class Commander
             }
             prev_rt_pressed_ = rt_pressed;
 
-            // 模式切换：笛卡尔模式 <-> 全关节空间模式 这里只写日志和状态切换判断，具体控制在下面
+            // 模式切换已关闭：当前整机只允许关节直通模式。
             bool r3_toggle = (msg.buttons.size() > 10 && msg.buttons[12]);
             if (r3_toggle && !prev_r3_pressed_) // R3上升沿触发模式切换
             {
-                global_joint_mode_ = !global_joint_mode_;
-                if (global_joint_mode_) 
-                {
-                    RCLCPP_WARN(node_->get_logger(), "[MODE] 已切换到关节空间模式");
-                } 
-                else 
-                {
-                    RCLCPP_INFO(node_->get_logger(), "[MODE] 已切换到笛卡尔空间模式");
-                }
+                global_joint_mode_ = true;
+                RCLCPP_WARN(node_->get_logger(), "[MODE] 笛卡尔控制当前已屏蔽，仍保持关节直通模式。");
             }
             prev_r3_pressed_ = r3_toggle;
 
@@ -325,67 +319,39 @@ class Commander
                 // J7 (RX if L3 held) (Inverted)
                 joint_msg->velocities.push_back(l3_hold ? -stick_val(msg.axes[3]) : 0.0);
 
-                if (joint_pub_) // 判断指针是否有效
+                if (direct_joint_pub_)
                 {
-                    std::ostringstream active_joints;
-                    bool first_active_joint = true;
-                    for (size_t i = 0; i < joint_msg->joint_names.size() && i < joint_msg->velocities.size(); ++i)
-                    {
-                        if (std::abs(joint_msg->velocities[i]) > 1e-3)
-                        {
-                            if (!first_active_joint) active_joints << ", ";
-                            active_joints << joint_msg->joint_names[i]
-                                          << "=" << joint_msg->velocities[i];
-                            first_active_joint = false;
-                        }
-                    }
-
-                    if (first_active_joint)
-                    {
-                        active_joints << "none";
-                    }
-
-                    RCLCPP_INFO_THROTTLE(
-                        node_->get_logger(), *node_->get_clock(), 500,
-                        "[TELEMETRY] 关节空间Jog控制中: %s",
-                        active_joints.str().c_str());
-                    joint_pub_->publish(std::move(joint_msg)); // 发布关节空间Jog控制
+                    auto direct_msg = std::make_unique<FloatArray>();
+                    direct_msg->data = joint_msg->velocities;
+                    direct_joint_pub_->publish(std::move(direct_msg));
                 }
+
+                std::ostringstream active_joints;
+                bool first_active_joint = true;
+                for (size_t i = 0; i < joint_msg->joint_names.size() && i < joint_msg->velocities.size(); ++i)
+                {
+                    if (std::abs(joint_msg->velocities[i]) > 1e-3)
+                    {
+                        if (!first_active_joint) active_joints << ", ";
+                        active_joints << joint_msg->joint_names[i]
+                                      << "=" << joint_msg->velocities[i];
+                        first_active_joint = false;
+                    }
+                }
+
+                if (first_active_joint)
+                {
+                    active_joints << "none";
+                }
+
+                RCLCPP_INFO_THROTTLE(
+                    node_->get_logger(), *node_->get_clock(), 500,
+                    "[TELEMETRY] 关节空间直通控制中: %s",
+                    active_joints.str().c_str());
             } 
-            else // 笛卡尔模式
+            else
             {
-                // 笛卡尔Twist模式（base_link或末端坐标系）
-                auto twist_msg = std::make_unique<TwistStamped>();
-                twist_msg->header.stamp = node_->now();
-                twist_msg->header.frame_id = tool_mode ? "gripper_center" : "base_link";
-
-                // 线速度：xyz；
-                double lx = stick_val(msg.axes[1]); 
-                double ly = stick_val(msg.axes[0]);
-                double lz = (msg.axes.size() > 4) ? stick_val(msg.axes[4]) : 0.0;
-
-                // 笛卡尔旋转改为D-Pad输入：上下->pitch(ay), 左右->yaw(az)
-                // 当前映射：up=13, down=14, left=15, right=16
-                const double dpad_up = (msg.buttons.size() > 13 && msg.buttons[13]) ? 1.0 : 0.0;
-                const double dpad_down = (msg.buttons.size() > 14 && msg.buttons[14]) ? 1.0 : 0.0;
-                const double dpad_left = (msg.buttons.size() > 15 && msg.buttons[15]) ? 1.0 : 0.0;
-                const double dpad_right = (msg.buttons.size() > 16 && msg.buttons[16]) ? 1.0 : 0.0;
-                double ax = (msg.axes.size() > 3) ? -stick_val(msg.axes[3]) : 0.0; // roll
-                double ay = stick_val(dpad_up - dpad_down);     // pitch
-                double az = stick_val(dpad_right - dpad_left);  // yaw
-
-                twist_msg->twist.linear.x = lx; 
-                twist_msg->twist.linear.y = ly; 
-                twist_msg->twist.linear.z = lz; 
-                twist_msg->twist.angular.x = ax; 
-                twist_msg->twist.angular.y = ay; 
-                twist_msg->twist.angular.z = az; 
-
-                if (std::abs(lx)>0.01 || std::abs(lz)>0.01) 
-                {
-                    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000, "[TELEMETRY] 笛卡尔轴向控制中");
-                }
-                if(twist_pub_) twist_pub_->publish(std::move(twist_msg)); // 发布笛卡尔速度控制
+                (void)tool_mode;
             }
         }
 
@@ -396,13 +362,14 @@ class Commander
         std::atomic<bool> is_busy_{false};  // 轨迹执行忙碌标志（异步线程与回调线程共享）
         bool manual_paused_{false};         // 手动暂停标志：RT 切换，true 时屏蔽控制输入
         bool prev_rt_pressed_{false};       // RT 上一帧状态：用于上升沿检测
-        bool global_joint_mode_{false};     // 模式标志：false=笛卡尔，true=关节空间
+        bool global_joint_mode_{true};      // 当前固定为关节空间直通模式
         bool prev_r3_pressed_{false};       // R3 上一帧状态：用于模式切换上升沿检测
         std::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> psm_;  // 规划场景监视器：提供状态/场景/世界几何
         std::unique_ptr<moveit_servo::Servo> servo_;  // Servo 实例：实时速度控制核心
         std::shared_ptr<const moveit_servo::ServoParameters> servo_parameters_;  // Servo 参数快照
         rclcpp::Publisher<TwistStamped>::SharedPtr twist_pub_;  // 笛卡尔命令发布器（TwistStamped）
         rclcpp::Publisher<JointJog>::SharedPtr joint_pub_;      // 关节命令发布器（JointJog）
+        rclcpp::Publisher<FloatArray>::SharedPtr direct_joint_pub_;  // 关节模式直通速度命令发布器
         rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr debug_sub_;  // 调试订阅器：观察 Servo 输出轨迹
         rclcpp::Subscription<Joy>::SharedPtr joy_sub_;  // 手柄订阅器：接收 /joy 并触发 joyCallback
 };

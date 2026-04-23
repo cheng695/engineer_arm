@@ -14,6 +14,7 @@
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "example_interfaces/msg/float64_multi_array.hpp"
 
 // 新增加的头文件
 #include "arm_hardware_interface/socket_can.hpp"
@@ -35,6 +36,30 @@ constexpr size_t kJ5Index = 4;
 constexpr double kJ2J3Coupling = 0.986;
 constexpr int kSafeZeroFramesAfterEnable = 50;
 constexpr double kVelocityArmThreshold = 0.02;
+
+double lower_limit_for_joint_name(const std::string & joint_name)
+{
+  if (joint_name == "joint1") return -2.3562;
+  if (joint_name == "joint2") return -0.2620;
+  if (joint_name == "joint3") return -0.9599;
+  if (joint_name == "joint4") return -2.3562;
+  if (joint_name == "joint5") return -1.5708;
+  if (joint_name == "joint6") return -1.5708;
+  if (joint_name == "joint7") return -1.5708;
+  return -std::numeric_limits<double>::infinity();
+}
+
+double upper_limit_for_joint_name(const std::string & joint_name)
+{
+  if (joint_name == "joint1") return 2.3562;
+  if (joint_name == "joint2") return 1.1340;
+  if (joint_name == "joint3") return 0.9599;
+  if (joint_name == "joint4") return 2.3562;
+  if (joint_name == "joint5") return 1.5708;
+  if (joint_name == "joint6") return 1.5708;
+  if (joint_name == "joint7") return 1.5708;
+  return std::numeric_limits<double>::infinity();
+}
 
 double feedback_sign_for_joint_space(size_t joint_index)
 {
@@ -126,7 +151,11 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
   hw_states_eff_.resize(info_.joints.size(), 0.0);
   hw_commands_eff_.resize(info_.joints.size(), 0.0);
   use_real_joint_io_.resize(info_.joints.size(), true);
+  joint_lower_limits_.resize(info_.joints.size(), -std::numeric_limits<double>::infinity());
+  joint_upper_limits_.resize(info_.joints.size(), std::numeric_limits<double>::infinity());
   gravity_compensation_eff_.resize(info_.joints.size(), 0.0);
+  direct_joint_vel_cmds_.resize(info_.joints.size(), 0.0);
+  direct_joint_target_pos_.resize(info_.joints.size(), 0.0);
   gravity_mode_ = parse_gravity_mode(info_);
 
   std::set<std::string> active_real_joints;
@@ -147,6 +176,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
     std::string enabled_joints_log;
     for (size_t i = 0; i < info_.joints.size(); ++i) {
       use_real_joint_io_[i] = active_real_joints.count(info_.joints[i].name) > 0;
+      joint_lower_limits_[i] = lower_limit_for_joint_name(info_.joints[i].name);
+      joint_upper_limits_[i] = upper_limit_for_joint_name(info_.joints[i].name);
       if (use_real_joint_io_[i]) {
         if (!enabled_joints_log.empty()) {
           enabled_joints_log += ", ";
@@ -158,6 +189,11 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
       rclcpp::get_logger("ArmHardwareInterface"),
       "[TEST] 单关节实测模式已启用。真实 CAN 关节: [%s]；其余关节将使用本地假反馈。",
       enabled_joints_log.c_str());
+  }
+
+  for (size_t i = 0; i < info_.joints.size(); ++i) {
+    joint_lower_limits_[i] = lower_limit_for_joint_name(info_.joints[i].name);
+    joint_upper_limits_[i] = upper_limit_for_joint_name(info_.joints[i].name);
   }
 
   // --- Pinocchio 动力学库初始化 ---
@@ -363,6 +399,32 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
             disable_requested_ = true;
           }
         });
+    hold_sub_ = internal_node_->create_subscription<std_msgs::msg::Bool>(
+        "/arm_hold_position", 10,
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {
+          if (msg->data) {
+            hold_position_requested_ = true;
+          }
+        });
+    direct_joint_vel_sub_ =
+      internal_node_->create_subscription<example_interfaces::msg::Float64MultiArray>(
+        "/arm_direct_joint_vel_cmds", 10,
+        [this](const example_interfaces::msg::Float64MultiArray::SharedPtr msg) {
+          if (msg->data.size() != direct_joint_vel_cmds_.size()) {
+            RCLCPP_WARN_THROTTLE(
+              rclcpp::get_logger("ArmHardwareInterface"),
+              *internal_node_->get_clock(),
+              2000,
+              "[DIRECT] 收到的关节直通速度命令维度错误: expected=%zu actual=%zu",
+              direct_joint_vel_cmds_.size(),
+              msg->data.size());
+            return;
+          }
+
+          direct_joint_vel_cmds_ = msg->data;
+          last_direct_joint_vel_stamp_ = internal_node_->now();
+          direct_joint_vel_active_ = true;
+        });
   }
 
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -507,6 +569,25 @@ hardware_interface::return_type ArmHardwareInterface::read(
       hw_states_eff_[kJ6Index]);
   }
 
+  static double last_logged_j6_cmd_pos = std::numeric_limits<double>::quiet_NaN();
+  static double last_logged_j6_cmd_vel = std::numeric_limits<double>::quiet_NaN();
+  const double j6_cmd_pos = hw_commands_[kJ6Index];
+  const double j6_cmd_vel = hw_commands_vel_[kJ6Index];
+  if (
+    std::isnan(last_logged_j6_cmd_pos) ||
+    std::abs(j6_cmd_pos - last_logged_j6_cmd_pos) > 1e-4 ||
+    std::abs(j6_cmd_vel - last_logged_j6_cmd_vel) > 1e-4)
+  {
+    RCLCPP_WARN(
+      rclcpp::get_logger("ArmHardwareInterface"),
+      "[J6-CMD] enabled=%s hw_commands_pos=%.4f hw_commands_vel=%.4f",
+      motors_enabled_ ? "true" : "false",
+      j6_cmd_pos,
+      j6_cmd_vel);
+    last_logged_j6_cmd_pos = j6_cmd_pos;
+    last_logged_j6_cmd_vel = j6_cmd_vel;
+  }
+
 
   // --- Pinocchio 重力补偿计算 ---
   if (pinocchio_initialized_) {
@@ -533,15 +614,54 @@ hardware_interface::return_type ArmHardwareInterface::read(
 }
 
 hardware_interface::return_type ArmHardwareInterface::write(
-  const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+  const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
 {
+  const double direct_joint_cmd_timeout = 0.2;
+  bool direct_joint_mode_active = false;
+  if (internal_node_ && direct_joint_vel_active_) {
+    const double age = (internal_node_->now() - last_direct_joint_vel_stamp_).seconds();
+    direct_joint_mode_active = age >= 0.0 && age < direct_joint_cmd_timeout;
+  }
+
+  if (direct_joint_vel_active_ && !direct_joint_mode_active) {
+    std::fill(direct_joint_vel_cmds_.begin(), direct_joint_vel_cmds_.end(), 0.0);
+    direct_joint_vel_active_ = false;
+  }
+
+  if (direct_joint_mode_active && !direct_joint_mode_latched_) {
+    direct_joint_target_pos_ = hw_states_;
+    direct_joint_mode_latched_ = true;
+    RCLCPP_WARN(
+      rclcpp::get_logger("ArmHardwareInterface"),
+      "[DIRECT] 进入关节直通模式：目标位置已从当前反馈锁存。");
+  } else if (!direct_joint_mode_active && direct_joint_mode_latched_) {
+    direct_joint_mode_latched_ = false;
+    RCLCPP_WARN(
+      rclcpp::get_logger("ArmHardwareInterface"),
+      "[DIRECT] 退出关节直通模式。");
+  }
+
   auto sync_commands_to_current_state = [this]() {
     for (size_t i = 0; i < joints_motors.size(); i++)
     {
       // Keep the desired position aligned with the latest feedback so that
       // re-enabling torque does not cause the controller to chase a stale target.
       hw_commands_[i] = hw_states_[i];
+      direct_joint_target_pos_[i] = hw_states_[i];
       hw_commands_vel_[i] = 0.0;
+      hw_commands_eff_[i] = 0.0;
+    }
+  };
+
+  auto apply_direct_joint_commands = [this, &period]() {
+    const double dt = period.seconds();
+    for (size_t i = 0; i < hw_commands_.size() && i < direct_joint_vel_cmds_.size(); ++i) {
+      hw_commands_vel_[i] = direct_joint_vel_cmds_[i];
+      direct_joint_target_pos_[i] = std::clamp(
+        direct_joint_target_pos_[i] + direct_joint_vel_cmds_[i] * dt,
+        joint_lower_limits_[i],
+        joint_upper_limits_[i]);
+      hw_commands_[i] = direct_joint_target_pos_[i];
       hw_commands_eff_[i] = 0.0;
     }
   };
@@ -596,6 +716,18 @@ hardware_interface::return_type ArmHardwareInterface::write(
         "[POWER] 所有电机已失能 (扭矩已关闭)");
   }
 
+  if (hold_position_requested_.exchange(false))
+  {
+    sync_commands_to_current_state();
+    std::fill(direct_joint_vel_cmds_.begin(), direct_joint_vel_cmds_.end(), 0.0);
+    direct_joint_vel_active_ = false;
+    direct_joint_mode_latched_ = false;
+    velocity_commands_armed_ = false;
+    RCLCPP_WARN(
+      rclcpp::get_logger("ArmHardwareInterface"),
+      "[HOLD] 已锁定当前位置并清零速度命令。");
+  }
+
   // 如果电机未使能，发送被动探测帧 (KP=0, KD=0) 以触发反馈回复
   if (!motors_enabled_) {
     sync_commands_to_current_state();
@@ -612,6 +744,10 @@ hardware_interface::return_type ArmHardwareInterface::write(
       std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
     return hardware_interface::return_type::OK;
+  }
+
+  if (direct_joint_mode_active) {
+    apply_direct_joint_commands();
   }
 
   if (!velocity_commands_armed_.load()) {
@@ -633,6 +769,9 @@ hardware_interface::return_type ArmHardwareInterface::write(
 
   int safe_frames_remaining = safe_zero_frames_after_enable_.load();
   if (safe_frames_remaining > 0) {
+    if (direct_joint_mode_active) {
+      apply_direct_joint_commands();
+    }
     for (auto & motor : joints_motors) {
       const size_t motor_index = static_cast<size_t>(&motor - &joints_motors[0]);
       if (!use_real_joint_io_[motor_index]) {
@@ -747,8 +886,8 @@ hardware_interface::return_type ArmHardwareInterface::write(
         // --- 命令解耦 (J2 & J3 同步带反向补偿) ---
         // 如果是关节 3 (索引 2)，我们需要反转解耦公式:
         if (i == kJ3Index) {
-            // 临时旁路 J3：用于隔离 J3 的耦合/方向/命令问题。
-            // 保持与极简 keepalive 一致，只发全零 MIT 命令，先确认系统是否仍会在使能后立即报错。
+            // 临时旁路 J3：用于隔离特殊关节的命令链问题。
+            // 保持与极简 keepalive 一致，只发全零 MIT 命令。
             target_pos = 0.0;
             target_vel = 0.0;
             target_eff = 0.0;
