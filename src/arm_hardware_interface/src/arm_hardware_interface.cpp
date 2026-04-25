@@ -22,6 +22,12 @@
 
 namespace arm_hardware_interface
 {
+// 文件级流程说明（ros2_control 生命周期）：
+// 1) on_init      : 解析 URDF/参数，创建电机对象与 CAN 总线映射
+// 2) on_activate  : 打开 CAN，总线就绪；等待外部话题触发电机上电
+// 3) read         : 收反馈、更新关节状态、做 J2/J3 解耦、计算重力补偿
+// 4) write        : 处理上电/下电、异常恢复、将控制命令编码后发到各 CAN 总线
+
 // 使用命名空间简化代码
 using namespace motor_drivers::DM;
 
@@ -197,6 +203,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
   }
 
   // --- Pinocchio 动力学库初始化 ---
+  // 优先使用 robot_description(XML 字符串)，其次尝试 robot_description_path(URDF 文件路径)。
+  // 初始化失败不会中断硬件接口，仅会禁用重力补偿。
   try {
     std::string urdf_xml;
     std::string urdf_path;
@@ -259,7 +267,7 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
   joints_motors.clear();
   can_buses.clear();
 
-  // 为每个关节显示初始化电机 (可以根据实际型号和总线进行配置)
+  // 为每个关节显式初始化电机对象，并建立“关节 <-> 电机 <-> CAN总线”映射
   for (size_t i = 0; i < info_.joints.size(); i++)
   {
       // 1. 读取 CAN ID
@@ -323,7 +331,7 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
           motor->setKd(kd);
           joints_motors.push_back(motor);
 
-          // 5. 确保该总线的 Socket 实例已存在
+      // 5. 确保该总线的 SocketCan 实例已存在（同总线多电机共用一个 socket）
           if (can_buses.find(bus_name) == can_buses.end()) 
           {
               can_buses[bus_name] = std::make_shared<SocketCan>();
@@ -382,7 +390,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
     }
   }
 
-  // 不要在此处使能电机。等待手柄按钮点火。
+  // 不在 activate 阶段直接上电，避免系统启动时电机立刻出力。
+  // 上电由 /arm_motor_enable 话题显式触发（例如手柄按钮）。
   motors_enabled_ = false;
   RCLCPP_WARN(rclcpp::get_logger("ArmHardwareInterface"),
       "[POWER] CAN 总线已打开。电机当前处于关闭状态。请按下手柄 Xbox 键使能电机。");
@@ -473,6 +482,7 @@ hardware_interface::return_type ArmHardwareInterface::read(
       for (size_t i = 0; i < joints_motors.size(); i++)
       {
           bool id_match = (joints_motors[i]->getCanId() == received_id);
+          // 某些反馈帧使用 0x00 作为 CAN ID，并把真实电机 ID 放在 payload 低 4bit。
           bool payload_match = (received_id == 0x00 && (frame.data[0] & 0x0F) == joints_motors[i]->getCanId());
 
           if ((id_match || payload_match) && joints_motors[i]->getBusName() == name)
@@ -528,6 +538,7 @@ hardware_interface::return_type ArmHardwareInterface::read(
   }
 
   // --- 运动学解耦 (J2 & J3 同步带耦合处理) ---
+  // 电机侧反馈值与“关节实际角”不同，这里在状态侧先转换为控制器可直接使用的关节角。
   // J2 索引: 1, J3 索引: 2
   // read():  电机空间 -> 关节空间
   // write(): 关节空间 -> 电机空间
@@ -590,6 +601,7 @@ hardware_interface::return_type ArmHardwareInterface::read(
 
 
   // --- Pinocchio 重力补偿计算 ---
+  // 在 q=当前关节角、v=0、a=0 时，RNEA 输出即为静态重力项 tau_g。
   if (pinocchio_initialized_) {
     Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
     // 将 hw_states_ 映射到 Pinocchio 的 q 向量。 
@@ -737,8 +749,8 @@ hardware_interface::return_type ArmHardwareInterface::write(
         continue;
       }
       uint8_t probe[8];
-      // 发送 目标=0, 速度=0, KP=0, KD=0, 扭矩=0
-      // 这不会产生扭矩，但会强制电机回复当前状态
+      // 发送 目标=0, 速度=0, KP=0, KD=0, 扭矩=0：
+      // 该帧用于“只读状态不出力”，便于未上电时仍刷新反馈。
       motor->pack_mit_command(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, probe);
       can_buses[motor->getBusName()]->write_frame(motor->getCanId(), probe);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
