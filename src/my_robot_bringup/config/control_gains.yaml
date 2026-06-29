@@ -1,0 +1,62 @@
+# Control Gains — 对标 OpenArm 的 control_gains.yaml
+#
+# 机械臂各关节的 MIT 控制增益。
+# 在启动时加载为 ROS 参数，会覆盖 xacro 中的默认值。
+#
+# 调参说明（来自 OpenArm 文档）：
+#   ⚠️ 请谨慎调整增益值。先用较低增益验证行为，再逐步增大。
+#   如果在较大位置差下使用高增益执行动作，控制器可能产生危险的高速指令。
+#
+# 参数说明：
+#   kp: MIT 模式比例增益（位置刚度）
+#   kd: MIT 模式微分增益（速度阻尼）
+#
+# 注意：joint3 的 kp/kd 显著低于其他关节，这是 J2/J3 同步带耦合机构
+#   的设计特性 —— 过高增益会引起该关节振荡。
+
+# J2/J3 同步带耦合系数（J3 实际位置 = 电机反馈 + 耦合系数 × J2 位置）
+# 调整此值会影响 J3 的解耦精度。
+j2j3_coupling: 0.986
+
+arm_control_gains:
+  joint1:
+    motor_model: J8009
+    kp: 120.0
+    kd: 3.0
+    can_bus: can0
+
+  joint2:
+    motor_model: J8009
+    kp: 120.0
+    kd: 3.0
+    can_bus: can0
+
+  joint3:
+    motor_model: J8009
+    kp: 0.1
+    kd: 0.1
+    can_bus: can0
+
+  joint4:
+    motor_model: J4340
+    kp: 120.0
+    kd: 3.0
+    can_bus: can0
+
+  joint5:
+    motor_model: J4340
+    kp: 120.0
+    kd: 3.0
+    can_bus: can1
+
+  joint6:
+    motor_model: J4310
+    kp: 120.0
+    kd: 1.0
+    can_bus: can1
+
+  joint7:
+    motor_model: J4310
+    kp: 60.0
+    kd: 1.0
+    can_bus: can1

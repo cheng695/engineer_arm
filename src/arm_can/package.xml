@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>arm_can</name>
+  <version>0.1.0</version>
+  <description>Standalone CAN-FD motor control library for Damiao motors.
+    Provides a three-layer architecture:
+    - canbus:  Low-level SocketCAN wrapper
+    - damiao_motor: MIT protocol motor drivers and multi-device bus management
+    No ROS dependencies — pure C++ with Linux SocketCAN system headers.</description>
+  <maintainer email="TODO@email.com">whc</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

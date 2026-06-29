@@ -1,4 +1,6 @@
 import os
+import yaml
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.conditions import IfCondition
@@ -13,7 +15,15 @@ def generate_launch_description():
     # 路径定义
     description_package = "my_robot_description"
     bringup_package = "my_robot_bringup"
-    
+
+    # 启动参数（对齐 openarm 命名习惯）
+    use_mock_hardware = LaunchConfiguration("use_mock_hardware", default="false")
+    gravity_compensation_mode = LaunchConfiguration("gravity_compensation_mode", default="off")
+    active_real_joints = LaunchConfiguration("active_real_joints", default="")
+    can0_interface = LaunchConfiguration("can0_interface", default="can0")
+    can1_interface = LaunchConfiguration("can1_interface", default="can1")
+    controllers_file = LaunchConfiguration("controllers_file", default="arm_controllers.yaml")
+
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -21,26 +31,37 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare(description_package), "urdf", "my_robot.urdf.xacro"]
             ),
+            " use_mock_hardware:=", use_mock_hardware,
+            " gravity_compensation_mode:=", gravity_compensation_mode,
+            " active_real_joints:=", active_real_joints,
+            " can0_interface:=", can0_interface,
+            " can1_interface:=", can1_interface,
         ]
     )
-    # 显式包装为字符串，防止被误判为 YAML
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 
     robot_controllers = PathJoinSubstitution(
         [
             FindPackageShare(bringup_package),
             "config",
-            "arm_controllers.yaml",
+            controllers_file,
         ]
     )
+
+    # 加载控制增益（Python dict，非 ROS2 YAML 参数文件格式）
+    control_gains_path = os.path.join(
+        get_package_share_directory(bringup_package),
+        "config", "control_gains.yaml")
+    with open(control_gains_path, "r") as f:
+        control_gains = yaml.safe_load(f)
 
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, robot_controllers],
+        parameters=[robot_description, robot_controllers, control_gains],
         output="both",
     )
-    
+
     robot_state_pub_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
@@ -60,11 +81,45 @@ def generate_launch_description():
         arguments=["arm_controller", "--controller-manager", "/controller_manager"],
     )
 
+    forward_velocity_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["forward_velocity_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    gripper_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["gripper_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    # arm_controller 在 joint_state_broadcaster 之后启动
+    spawn_arm_controller_event = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[arm_controller_spawner],
+        )
+    )
+
     nodes = [
         control_node,
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
-        arm_controller_spawner,
+        spawn_arm_controller_event,
+        forward_velocity_controller_spawner,
+        gripper_controller_spawner,
     ]
 
-    return LaunchDescription(nodes)
+    return LaunchDescription([
+        DeclareLaunchArgument("use_mock_hardware", default_value="false",
+            description="Use mock hardware (GenericSystem) instead of real CAN hardware"),
+        DeclareLaunchArgument("gravity_compensation_mode", default_value="off",
+            description="Gravity compensation mode: off, assist, gravity_only"),
+        DeclareLaunchArgument("active_real_joints", default_value="",
+            description="Comma-separated list of joint names using real CAN I/O"),
+        DeclareLaunchArgument("can0_interface", default_value="can0",
+            description="CAN interface for joints 1-4"),
+        DeclareLaunchArgument("can1_interface", default_value="can1",
+            description="CAN interface for joints 5-7"),
+        *nodes,
+    ])

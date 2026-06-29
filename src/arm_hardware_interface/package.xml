@@ -9,14 +9,18 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>arm_can</depend>
   <depend>hardware_interface</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>std_msgs</depend>
   <depend>example_interfaces</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trajectory_msgs</depend>
   <depend>pinocchio</depend>
   <depend>eigen</depend>
+  <depend>moveit_core</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

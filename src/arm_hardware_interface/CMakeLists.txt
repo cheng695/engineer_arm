@@ -7,18 +7,27 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(arm_can REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
+find_package(trajectory_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(moveit_core REQUIRED)
 
 # Define hardware interface library
 add_library(${PROJECT_NAME} SHARED
   src/arm_hardware_interface.cpp
+  src/remote.cpp
+  src/arm_joint.cpp
+  src/gravity_compensator.cpp
+  src/arm_cartesian.cpp
+  src/pinocchio_kinematics_plugin.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -27,12 +36,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 ament_target_dependencies(${PROJECT_NAME}
+  arm_can
   hardware_interface
   pluginlib
   rclcpp
   rclcpp_lifecycle
   std_msgs
   example_interfaces
+  sensor_msgs
+  trajectory_msgs
+  moveit_core
 )
 
 # Use target_link_libraries for non-ament packages
@@ -41,8 +54,9 @@ target_link_libraries(${PROJECT_NAME}
   Eigen3::Eigen
 )
 
-# Export plugin
+# Export plugins
 pluginlib_export_plugin_description_file(hardware_interface arm_hardware_interface.xml)
+pluginlib_export_plugin_description_file(moveit_core pinocchio_kinematics_plugin_description.xml)
 
 # Install
 install(TARGETS ${PROJECT_NAME}
@@ -51,4 +65,6 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY include/
   DESTINATION include)
 
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
 ament_package()

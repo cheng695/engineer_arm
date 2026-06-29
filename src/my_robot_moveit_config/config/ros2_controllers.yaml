@@ -1,4 +1,7 @@
-# This config file is used by ros2_control
+# ros2_controllers.yaml
+# MoveIt Servo outputs to /arm_controller/joint_trajectory topic.
+# No forward_* controller needed — Servo handles all real-time control.
+
 controller_manager:
   ros__parameters:
     update_rate: 500  # Hz
@@ -6,10 +9,8 @@ controller_manager:
     arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     gripper_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -26,10 +27,10 @@ arm_controller:
       - joint7
     command_interfaces:
       - position
-      - velocity
     state_interfaces:
       - position
       - velocity
+
 gripper_controller:
   ros__parameters:
     joints:
