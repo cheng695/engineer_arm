@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(pinocchio REQUIRED)
@@ -23,6 +24,7 @@ find_package(moveit_core REQUIRED)
 # Define hardware interface library
 add_library(${PROJECT_NAME} SHARED
   src/arm_hardware_interface.cpp
+  src/fdcc_controller.cpp
   src/remote.cpp
   src/arm_joint.cpp
   src/gravity_compensator.cpp
@@ -43,6 +45,7 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp_lifecycle
   std_msgs
   example_interfaces
+  geometry_msgs
   sensor_msgs
   trajectory_msgs
   moveit_core

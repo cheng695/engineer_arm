@@ -8,6 +8,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(moveit_servo REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -26,6 +27,7 @@ target_include_directories(joy_to_servo_node PRIVATE
 ament_target_dependencies(joy_to_servo_node
   rclcpp
   moveit_servo
+  moveit_ros_planning_interface
   control_msgs
   geometry_msgs
   sensor_msgs

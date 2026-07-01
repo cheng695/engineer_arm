@@ -1,4 +1,5 @@
 import os
+import subprocess
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -23,6 +24,11 @@ def generate_launch_description():
     description_xacro_file = os.path.join(description_pkg, "urdf", "my_robot.urdf.xacro")
     initial_positions_file = os.path.join(moveit_config_pkg, "config", "initial_positions.yaml")
 
+    # 预生成 URDF 到临时文件（GravityCompensator / FDCC 需要，通过 shell 继承环境）
+    urdf_file = "/tmp/robot_description.urdf"
+    subprocess.run(f"xacro {description_xacro_file} > {urdf_file}",
+                   shell=True, env=os.environ.copy(), check=True)
+
     robot_description_content = Command([
         'xacro ', description_xacro_file,
         ' use_mock_hardware:=', use_mock_hardware,
@@ -30,6 +36,7 @@ def generate_launch_description():
         ' active_real_joints:=', active_real_joints,
         ' can0_interface:=', can0_interface,
         ' can1_interface:=', can1_interface,
+        ' robot_description_file:=', urdf_file,
     ])
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="arm_ros2_control" params="name use_mock_hardware:=false gravity_compensation_mode:=off active_real_joints:='' can0_interface:=can0 can1_interface:=can1">
+  <xacro:macro name="arm_ros2_control" params="name use_mock_hardware:=false gravity_compensation_mode:=off active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
     <ros2_control name="${name}" type="system">
       <hardware>
         <xacro:if value="${use_mock_hardware}">
@@ -10,7 +10,7 @@
         <xacro:unless value="${use_mock_hardware}">
           <plugin>arm_hardware_interface/ArmHardwareInterface</plugin>
         </xacro:unless>
-        <param name="robot_description">$(find my_robot_description)/urdf/my_robot.urdf.xacro</param>
+        <param name="robot_description">${robot_description_file}</param>
         <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
         <param name="active_real_joints">${active_real_joints}</param>
         <param name="j2j3_coupling">0.986</param>

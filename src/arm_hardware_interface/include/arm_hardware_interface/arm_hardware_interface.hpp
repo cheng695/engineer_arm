@@ -5,12 +5,16 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 
+#include <array>
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "arm_hardware_interface/fdcc_controller.hpp"
 #include "arm_hardware_interface/gravity_compensator.hpp"
 #include "arm_can/damiao_motor/dm_device_collection.hpp"
 
@@ -70,6 +74,7 @@ private:
     // ---- write 辅助 ----
     void process_motor_requests();
     void send_can_commands();
+    bool process_fdcc();
 
     // ---- 电机安全 ----
     void enable_motors();
@@ -113,10 +118,20 @@ private:
     std::vector<double> integrated_pos_;
     bool vel_mode_active_{false};
 
+    // ---- FDCC 笛卡尔扭矩模式（绕过 J⁺） ----
+    FdccController fdcc_controller_;
+    bool fdcc_enabled_{false};
+    std::array<double, 6> fdcc_twist_{};
+    std::atomic<int> fdcc_twist_countdown_{0};  // >0 = 有新数据，每帧递减
+    static constexpr int kFdccTimeout = 50;     // 50 帧无新数据 = 退出 FDCC
+
     // ---- 内部 ROS（独立线程，不碰实时循环） ----
     rclcpp::Node::SharedPtr internal_node_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr hold_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr fdcc_sub_;
+    rclcpp::executors::SingleThreadedExecutor::SharedPtr spin_executor_;
+    std::unique_ptr<std::thread> spin_thread_;
 };
 
 }  // namespace arm_hardware_interface

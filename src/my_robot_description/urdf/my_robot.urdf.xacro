@@ -15,6 +15,7 @@
   <xacro:arg name="gravity_compensation_mode" default="off"/>
   <xacro:arg name="can0_interface" default="can0"/>
   <xacro:arg name="can1_interface" default="can1"/>
+  <xacro:arg name="robot_description_file" default="/tmp/robot_description.urdf"/>
 
   <!-- Include ros2_control configuration -->
   <xacro:include filename="$(find arm_description)/urdf/arm.ros2_control.xacro"/>
@@ -23,7 +24,8 @@
     use_mock_hardware="$(arg use_mock_hardware)"
     gravity_compensation_mode="$(arg gravity_compensation_mode)"
     can0_interface="$(arg can0_interface)"
-    can1_interface="$(arg can1_interface)"/>
+    can1_interface="$(arg can1_interface)"
+    robot_description_file="$(arg robot_description_file)"/>
 
   <!-- Connect chassis to arm -->
   <joint name="chassis_to_arm_joint" type="fixed">

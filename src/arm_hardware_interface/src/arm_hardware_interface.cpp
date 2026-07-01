@@ -64,6 +64,15 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
             use_real_joint_io_[i] = active.count(info_.joints[i].name) > 0;
     }
 
+    // 初始化 FDCC 控制器（共享 GravityCompensator 的 Pinocchio 模型）
+    if (gravity_compensator_.is_initialized())
+    {
+        fdcc_controller_.initialize(gravity_compensator_.model(), "tool_link",
+                                     50.0, 5.0, 0.002, -1);  // 不锁定任何关节
+        fdcc_enabled_ = true;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "FDCC 控制器已初始化");
+    }
+
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "on_init 完成 (%zu 关节, %zu 真实电机)",
         info_.joints.size(),
         std::count(use_real_joint_io_.begin(), use_real_joint_io_.end(), true));
@@ -99,8 +108,26 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
             if (m->data) hold_requested_ = true;
         });
 
+    // FDCC twist 订阅（非实时，仅缓存最新 twist）
+    fdcc_sub_ = internal_node_->create_subscription<geometry_msgs::msg::TwistStamped>(
+        "/fdcc/twist_cmds", 10,
+        [this](const geometry_msgs::msg::TwistStamped::SharedPtr m) {
+            fdcc_twist_ = {m->twist.linear.x, m->twist.linear.y, m->twist.linear.z,
+                           m->twist.angular.x, m->twist.angular.y, m->twist.angular.z};
+            fdcc_twist_countdown_.store(kFdccTimeout, std::memory_order_release);
+        });
+
     motors_enabled_ = false;
     safe_zero_frames_ = 0;
+
+    // 启动 internal_node_ 的独立 spin 线程（处理 /arm_motor_enable /arm_hold_position /fdcc/twist_cmds 订阅）
+    rclcpp::executors::SingleThreadedExecutor::SharedPtr exec =
+        std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    exec->add_node(internal_node_);
+    spin_executor_ = exec;
+    spin_thread_ = std::make_unique<std::thread>([exec]() {
+        exec->spin();
+    });
 
     // 从 ROS 参数同步控制增益（覆盖 xacro 默认值）
     sync_control_gains();
@@ -112,6 +139,16 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
 hardware_interface::CallbackReturn ArmHardwareInterface::on_deactivate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
+    // 停止 internal_node_ 的 spin 线程
+    if (spin_executor_) {
+        spin_executor_->cancel();
+    }
+    if (spin_thread_) {
+        spin_thread_->join();
+        spin_thread_.reset();
+    }
+    spin_executor_.reset();
+
     disable_motors();
     device_collection_.closeCANBuses();
     return CallbackReturn::SUCCESS;
@@ -183,6 +220,10 @@ hardware_interface::return_type ArmHardwareInterface::read(
 hardware_interface::return_type ArmHardwareInterface::write(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
 {
+    // FDCC 模式优先：有新 twist 且电机已使能，则走 FDCC 路径
+    if (process_fdcc())
+        return hardware_interface::return_type::OK;
+
     process_motor_requests();
 
     if (!motors_enabled_)
@@ -293,17 +334,18 @@ void ArmHardwareInterface::init_mock_joints()
 
 bool ArmHardwareInterface::init_pinocchio()
 {
-    // 优先从 hardware_parameters 获取 robot_description
-    // 其次尝试 robot_description_path（遗留兼容）
     auto it = info_.hardware_parameters.find("robot_description");
-    if (it != info_.hardware_parameters.end())
-        return gravity_compensator_.initialize(it->second, rclcpp::get_logger("ArmHW"));
+    if (it == info_.hardware_parameters.end())
+        return false;
 
-    auto it_path = info_.hardware_parameters.find("robot_description_path");
-    if (it_path != info_.hardware_parameters.end())
-        return gravity_compensator_.initialize(it_path->second, rclcpp::get_logger("ArmHW"));
+    const auto& value = it->second;
+    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "robot_description (%zu 字符)", value.size());
 
-    return false;
+    // 如果是文件路径（以 / 开头或包含 .urdf），用文件方式加载
+    if (value.size() < 500 && (value[0] == '/' || value.find(".urdf") != std::string::npos))
+        return gravity_compensator_.initialize_from_file(value, rclcpp::get_logger("ArmHW"));
+    else
+        return gravity_compensator_.initialize(value, rclcpp::get_logger("ArmHW"));
 }
 
 bool ArmHardwareInterface::init_motors()
@@ -501,6 +543,49 @@ void ArmHardwareInterface::send_can_commands()
     }
 
     device_collection_.sendCommands(cmd_pos, cmd_vel, cmd_eff);
+}
+
+bool ArmHardwareInterface::process_fdcc()
+{
+    if (!fdcc_enabled_) return false;
+
+    int countdown = fdcc_twist_countdown_.load(std::memory_order_acquire);
+    if (countdown <= 0) return false;
+    fdcc_twist_countdown_.store(countdown - 1, std::memory_order_release);
+
+    RCLCPP_INFO_ONCE(rclcpp::get_logger("ArmHW"), "[FDCC] ACTIVE — J^T 路径运行中");
+
+    // 调试：每秒打印一次 twist 值（看线速度和角速度有没有搞反）
+    static auto last_debug = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_debug).count() >= 1)
+    {
+        last_debug = now;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[FDCC] twist: lin=[%.3f %.3f %.3f] ang=[%.3f %.3f %.3f]",
+            fdcc_twist_[0], fdcc_twist_[1], fdcc_twist_[2],
+            fdcc_twist_[3], fdcc_twist_[4], fdcc_twist_[5]);
+    }
+
+    // 将 twist 发给 FDCC 控制器，计算 {pos, vel, eff}
+    auto outputs = fdcc_controller_.compute(fdcc_twist_, hw_states_pos_, hw_states_vel_);
+
+    // 覆盖所有 7 个臂关节的命令（含 Mock），含 NaN 安全检查
+    for (size_t i = 0; i < std::min(outputs.size(), info_.joints.size()); ++i)
+    {
+        if (std::isnan(outputs[i].pos) || std::isnan(outputs[i].vel) || std::isnan(outputs[i].eff))
+        {
+            RCLCPP_ERROR_ONCE(rclcpp::get_logger("ArmHW"), "[FDCC] NaN detected at joint %zu, aborting", i);
+            return false;
+        }
+        hw_commands_pos_[i] = std::clamp(outputs[i].pos,
+            joint_lower_limits_[i], joint_upper_limits_[i]);
+        hw_commands_vel_[i] = std::clamp(outputs[i].vel, -30.0, 30.0);
+        hw_commands_eff_[i] = outputs[i].eff;
+    }
+
+    send_can_commands();
+    return true;
 }
 
 }  // namespace arm_hardware_interface

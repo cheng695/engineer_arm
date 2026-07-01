@@ -1,10 +1,7 @@
 /**
- * joy_to_servo — 摇杆转 Servo 转发器（内嵌 Servo 实例）
+ * joy_to_servo — 摇杆遥操作
  *
- * joy → Remote 解析 → TwistStamped/JointJog → MoveIt Servo → arm_controller
- *
- * Servo 在此节点内，MoveGroupInterface 不在此节点。
- * 固定点位规划使用 RViz 的 MotionPlanning 面板。
+ * 摇杆 → Remote → TwistStamped → FDCC (硬件接口) + Servo (备用)
  * 默认笛卡尔模式。
  */
 #include <rclcpp/rclcpp.hpp>
@@ -15,6 +12,7 @@
 #include <string>
 
 #include <moveit_servo/servo.h>
+#include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_servo/servo_parameters.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
@@ -32,13 +30,8 @@ public:
         node_ = rclcpp::Node::make_shared("joy_to_servo", options);
 
         // ---- Servo ----
-        RCLCPP_INFO(node_->get_logger(), "[SERVO] Loading...");
         auto servo_params = moveit_servo::ServoParameters::makeServoParameters(node_);
-        if (!servo_params)
-        {
-            RCLCPP_FATAL(node_->get_logger(), "[SERVO] Failed to load parameters");
-            throw std::runtime_error("Servo init failed");
-        }
+        if (!servo_params) throw std::runtime_error("Servo init failed");
 
         planning_scene_monitor_ =
             std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
@@ -46,29 +39,31 @@ public:
         if (planning_scene_monitor_->getPlanningScene())
         {
             planning_scene_monitor_->startStateMonitor(servo_params->joint_topic);
-            planning_scene_monitor_->startSceneMonitor(
-                servo_params->monitored_planning_scene_topic);
+            planning_scene_monitor_->startSceneMonitor(servo_params->monitored_planning_scene_topic);
             planning_scene_monitor_->setPlanningScenePublishingFrequency(25);
             planning_scene_monitor_->getStateMonitor()->enableCopyDynamics(true);
         }
 
-        servo_ = std::make_unique<moveit_servo::Servo>(
-            node_, servo_params, planning_scene_monitor_);
+        servo_ = std::make_unique<moveit_servo::Servo>(node_, servo_params, planning_scene_monitor_);
         servo_->start();
         RCLCPP_INFO(node_->get_logger(), "[SERVO] Started");
 
         command_frame_id_ = servo_params->robot_link_command_frame;
+        twist_pub_ = node_->create_publisher<TwistStamped>(servo_params->cartesian_command_in_topic, 10);
+        joint_pub_ = node_->create_publisher<JointJog>(servo_params->joint_command_in_topic, 10);
+        fdcc_pub_ = node_->create_publisher<TwistStamped>("/fdcc/twist_cmds", 10);
 
-        twist_pub_ = node_->create_publisher<TwistStamped>(
-            servo_params->cartesian_command_in_topic, 10);
-        joint_pub_ = node_->create_publisher<JointJog>(
-            servo_params->joint_command_in_topic, 10);
-
-        RCLCPP_INFO(node_->get_logger(), "[BOOT] joy_to_servo 启动完成");
-        RCLCPP_INFO(node_->get_logger(), "[MODE] 默认笛卡尔 | R3→关节 | RT→暂停");
+        // ---- MoveGroup（固定点位） ----
+        move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_, "arm");
+        move_group_->setGoalPositionTolerance(0.01);
+        move_group_->setGoalOrientationTolerance(0.01);
+        RCLCPP_INFO(node_->get_logger(), "[PLAN] MoveGroupInterface 就绪");
 
         joy_sub_ = node_->create_subscription<Joy>(
             "/joy", 10, [this](const Joy::SharedPtr m) { joyCallback(m); });
+
+        RCLCPP_INFO(node_->get_logger(), "[BOOT] 启动完成 (FDCC + Servo)");
+        RCLCPP_INFO(node_->get_logger(), "[MODE] 默认笛卡尔 | R3→关节 | RT→暂停");
     }
 
     rclcpp::Node::SharedPtr getNode() { return node_; }
@@ -81,10 +76,14 @@ private:
 
         if (remote_.joint())     joint_mode_ = true;
         if (remote_.cartesian()) joint_mode_ = false;
-        if (remote_.stop())      { servo_enabled_ = false; publishStop(); return; }
-        if (remote_.continue_()) { servo_enabled_ = true;  return; }
-        if (remote_.paused())    { publishStop(); return; }
-        if (!servo_enabled_) return;
+
+        // ---- 固定点位 ----
+        if (remote_.a_btn()) { goNamedTarget("home");  return; }
+        if (remote_.b_btn()) { goNamedTarget("right"); return; }
+        if (remote_.y_btn()) { goNamedTarget("up");    return; }
+        if (remote_.x_btn()) { goNamedTarget("left");  return; }
+
+        if (!enabled_) return;
 
         if (joint_mode_)  publishJointJog();
         else              publishTwist();
@@ -96,11 +95,11 @@ private:
         msg->header.stamp = node_->now();
         msg->header.frame_id = command_frame_id_;
         auto add = [&](const std::string& n, double v) {
-            if (std::abs(v) > 0.05) { msg->joint_names.push_back(n); msg->velocities.push_back(v * 3.0); }
+            if (std::abs(v) > 0.05) { msg->joint_names.push_back(n); msg->velocities.push_back(v * 1.5); }
         };
         add("joint1", remote_.j1()); add("joint2", remote_.j2());
         add("joint3", remote_.j3()); add("joint4", remote_.j4());
-        add("joint5", remote_.j5()); add("joint6", remote_.j6());
+        add("joint5", -remote_.j5()); add("joint6", remote_.j6());
         add("joint7", remote_.j7());
         if (!msg->joint_names.empty()) joint_pub_->publish(std::move(msg));
     }
@@ -110,21 +109,51 @@ private:
         auto msg = std::make_unique<TwistStamped>();
         msg->header.stamp = node_->now();
         msg->header.frame_id = command_frame_id_;
-        msg->twist.linear.x  = remote_.x()     * 0.5;
-        msg->twist.linear.y  = remote_.y()     * 0.5;
-        msg->twist.linear.z  = remote_.z()     * 0.5;
-        msg->twist.angular.x = remote_.roll()  * 2.0;
-        msg->twist.angular.y = remote_.pitch() * 2.0;
-        msg->twist.angular.z = remote_.yaw()   * 2.0;
+        msg->twist.linear.x  = -remote_.x()     * 0.2;
+        msg->twist.linear.y  = -remote_.y()     * 0.2;
+        msg->twist.linear.z  = remote_.z()     * 0.2;
+        msg->twist.angular.x = remote_.roll()  * 1.0;
+        msg->twist.angular.y = remote_.pitch() * 1.0;
+        msg->twist.angular.z = -remote_.yaw()   * 1.0;
+
+        auto fdcc_msg = std::make_unique<TwistStamped>(*msg);
         twist_pub_->publish(std::move(msg));
+        fdcc_pub_->publish(std::move(fdcc_msg));
+    }
+
+    void goNamedTarget(const std::string& target)
+    {
+        enabled_ = false;
+        publishStop();
+        servo_->setPaused(true);
+        RCLCPP_INFO(node_->get_logger(), "[PLAN] → %s", target.c_str());
+        try {
+            move_group_->setStartStateToCurrentState();
+            move_group_->setNamedTarget(target);
+            moveit::planning_interface::MoveGroupInterface::Plan plan;
+            if (move_group_->plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+                RCLCPP_INFO(node_->get_logger(), "[PLAN] executing");
+                move_group_->execute(plan);
+            } else RCLCPP_WARN(node_->get_logger(), "[PLAN] failed");
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(node_->get_logger(), "[PLAN] %s", e.what());
+        }
+        servo_->setPaused(false);
+        rclcpp::sleep_for(std::chrono::milliseconds(200));
+        enabled_ = true;
+        RCLCPP_INFO(node_->get_logger(), "[PLAN] resumed");
     }
 
     void publishStop()
     {
-        auto msg = std::make_unique<TwistStamped>();
-        msg->header.stamp = node_->now();
-        msg->header.frame_id = command_frame_id_;
-        twist_pub_->publish(std::move(msg));
+        auto twist = std::make_unique<TwistStamped>();
+        twist->header.stamp = node_->now();
+        twist->header.frame_id = command_frame_id_;
+        twist_pub_->publish(std::move(twist));
+        auto fdcc_twist = std::make_unique<TwistStamped>();
+        fdcc_twist->header.stamp = node_->now();
+        fdcc_twist->header.frame_id = command_frame_id_;
+        fdcc_pub_->publish(std::move(fdcc_twist));
     }
 
     rclcpp::Node::SharedPtr node_;
@@ -133,9 +162,11 @@ private:
     std::unique_ptr<moveit_servo::Servo> servo_;
     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor_;
     rclcpp::Publisher<TwistStamped>::SharedPtr twist_pub_;
+    rclcpp::Publisher<TwistStamped>::SharedPtr fdcc_pub_;
     rclcpp::Publisher<JointJog>::SharedPtr joint_pub_;
+    std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
     rclcpp::Subscription<Joy>::SharedPtr joy_sub_;
-    std::atomic<bool> servo_enabled_{true};
+    std::atomic<bool> enabled_{true};
     bool joint_mode_{false};
 };
 
