@@ -33,8 +33,8 @@ arm_control_gains:
 
   joint3:
     motor_model: J8009
-    kp: 0.1
-    kd: 0.1
+    kp: 120.0
+    kd: 3.0
     can_bus: can0
 
   joint4:
