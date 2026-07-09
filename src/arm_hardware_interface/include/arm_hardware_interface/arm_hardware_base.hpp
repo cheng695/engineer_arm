@@ -102,6 +102,7 @@ protected:
     std::vector<double> hw_commands_pos_;
     std::vector<double> hw_commands_vel_;
     std::vector<double> hw_commands_eff_;
+    std::vector<double> hold_position_target_;
 
     /// 仿真专用：process_control() 输出后的位置快照，read() 从这里回显
     /// 隔离 arm_controller 在 update() 时对 hw_commands_pos_ 的覆盖

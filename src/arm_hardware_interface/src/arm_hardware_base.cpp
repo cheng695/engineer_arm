@@ -29,6 +29,7 @@ void ArmHardwareBase::init_joint_buffers(const hardware_interface::HardwareInfo&
     hw_commands_pos_.resize(n, 0.0);
     hw_commands_vel_.resize(n, 0.0);
     hw_commands_eff_.resize(n, 0.0);
+    hold_position_target_.resize(n, 0.0);
     hw_sim_pos_.resize(n, 0.0);
     hw_sim_vel_.resize(n, 0.0);
     use_real_joint_io_.resize(n, true);
@@ -219,35 +220,61 @@ void ArmHardwareBase::apply_gravity_to_effort()
 bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& info)
 {
     // ---- FSM 更新 ----
+    const auto state_before_update = fsm_.state();
     bool dls_active   = dls_twist_countdown_.load(std::memory_order_acquire) > 0;
     bool joint_active = joint_vel_countdown_.load(std::memory_order_acquire) > 0;
     if (dls_active)   dls_twist_countdown_.store(dls_twist_countdown_.load(std::memory_order_acquire) - 1, std::memory_order_release);
     if (joint_active) joint_vel_countdown_.store(joint_vel_countdown_.load(std::memory_order_acquire) - 1, std::memory_order_release);
 
     fsm_.update(dls_active, joint_active);
+    const auto cur_state = fsm_.state();
 
     // ---- 状态同步：首次进入时对齐位置 ----
-    auto sync_all = [&]() 
+    auto sync_controllers = [&](const std::vector<double>& pos)
     {
         std::vector<double> cur_pos(kJointCount);
         for (size_t i = 0; i < kJointCount; ++i) 
         {
-            cur_pos[i] = hw_states_pos_[i];
+            cur_pos[i] = (i < pos.size()) ? pos[i] : 0.0;
         }
         dls_controller_.SyncPositions(cur_pos);
         joint_controller_.SyncPositions(cur_pos);
     };
 
-    if (fsm_.justExitedStop()) sync_all();
-    if (fsm_.justExitedStop()) sync_all();
-    if (fsm_.justEnteredDls()) sync_all();
-    if (fsm_.justEnteredJoint()) sync_all();
+    auto capture_feedback_hold = [&]()
+    {
+        for (size_t i = 0; i < std::min(kJointCount, hw_states_pos_.size()); ++i)
+            hold_position_target_[i] = hw_states_pos_[i];
+    };
+
+    if (fsm_.justExitedStop())
+    {
+        capture_feedback_hold();
+        sync_controllers(hold_position_target_);
+    }
+    if (fsm_.justEnteredDls())
+    {
+        capture_feedback_hold();
+        sync_controllers(hold_position_target_);
+    }
+    if (fsm_.justEnteredJoint())
+    {
+        capture_feedback_hold();
+        sync_controllers(hold_position_target_);
+    }
+    if (cur_state == ControlFsm::State::IDLE &&
+        (state_before_update == ControlFsm::State::DLS ||
+         state_before_update == ControlFsm::State::JOINT ||
+         state_before_update == ControlFsm::State::POSE))
+    {
+        capture_feedback_hold();
+        sync_controllers(hold_position_target_);
+    }
 
     // POSE 接管：先等待 arm_controller 给出贴近当前反馈的命令，再释放给轨迹控制器。
     // 这样 DLS/JOINT 后不会被 joint_trajectory_controller 的旧终点拉回去。
     static constexpr int kPoseGuardFrames = 25;  // 50ms @ 500Hz
     static constexpr double kPoseStartTolerance = 0.05;  // rad
-    auto cur_state = fsm_.state();
     if (cur_state == ControlFsm::State::POSE && previous_control_state_ != ControlFsm::State::POSE)
     {
         pose_guard_count_ = 0;
@@ -284,6 +311,7 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
             hw_commands_pos_[i] = std::clamp(outputs[i].pos, joint_lower_limits_[i], joint_upper_limits_[i]);
             hw_commands_vel_[i] = std::clamp(outputs[i].vel, -30.0, 30.0);
             hw_commands_eff_[i] = outputs[i].tor;
+            hold_position_target_[i] = hw_commands_pos_[i];
         }
         // 同步关节目标，切回时不跳变
         joint_controller_.SyncPositions(std::vector<double>(hw_commands_pos_.begin(), hw_commands_pos_.begin() + kJointCount));
@@ -309,18 +337,17 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
             }
             hw_commands_pos_[i] = outputs[i].pos;
             hw_commands_vel_[i] = outputs[i].vel;
+            hold_position_target_[i] = hw_commands_pos_[i];
         }
         return true;
     }
 
     case ControlFsm::State::IDLE:
-        // 每帧同步期望到反馈，确保下次进入控制状态不跳变
         for (size_t i = 0; i < kJointCount; ++i) 
         {
-            hw_commands_pos_[i] = hw_states_pos_[i];
+            hw_commands_pos_[i] = hold_position_target_[i];
             hw_commands_vel_[i] = 0.0;
         }
-        sync_all();
         return true;
 
     case ControlFsm::State::POSE:

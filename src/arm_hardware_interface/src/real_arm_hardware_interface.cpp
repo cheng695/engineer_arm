@@ -372,6 +372,7 @@ void RealArmHardwareInterface::sync_control_targets_to_feedback()
         hw_commands_pos_[i] = hw_states_pos_[i];
         hw_commands_vel_[i] = 0.0;
         hw_commands_eff_[i] = 0.0;
+        hold_position_target_[i] = hw_states_pos_[i];
     }
 
     std::fill(dls_twist_.begin(), dls_twist_.end(), 0.0);
@@ -424,7 +425,12 @@ void RealArmHardwareInterface::disable_motors()
 void RealArmHardwareInterface::hold_position()
 {
     for (size_t i = 0; i < info_.joints.size(); ++i)
-        { hw_commands_pos_[i] = hw_states_pos_[i]; hw_commands_vel_[i] = 0.0; }
+    {
+        hw_commands_pos_[i] = hw_states_pos_[i];
+        hw_commands_vel_[i] = 0.0;
+        if (i < hold_position_target_.size())
+            hold_position_target_[i] = hw_states_pos_[i];
+    }
     safe_zero_frames_ = 0;
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[HOLD] 位置锁定");
 }
