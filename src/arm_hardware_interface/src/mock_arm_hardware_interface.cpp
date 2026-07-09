@@ -104,8 +104,10 @@ hardware_interface::return_type MockArmHardwareInterface::write(
 {
     process_control(info_);
 
+    // controller_manager 默认 500Hz，诊断日志每 500 帧打印一次，避免终端刷屏。
+    static constexpr int kDiagPrintEveryWrites = 500;
     static int diag = 0;
-    if (++diag % 25 == 0) {
+    if (++diag % kDiagPrintEveryWrites == 0) {
         RCLCPP_INFO(rclcpp::get_logger("MockHW"),
             "WRITE cmd: J1=%.3f J2=%.3f J3=%.3f J4=%.3f J5=%.3f J6=%.3f J7=%.3f | FSM=%s",
             hw_commands_pos_[0], hw_commands_pos_[1], hw_commands_pos_[2],

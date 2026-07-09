@@ -175,20 +175,43 @@ private:
         }
     }
 
+    void publishTeleopHold()
+    {
+        auto twist = std::make_unique<TwistStamped>();
+        twist->header.stamp = node_->now();
+        twist->header.frame_id = command_frame_id_;
+        dls_pub_->publish(std::move(twist));
+
+        if (vel_pub_)
+        {
+            auto joint = std::make_unique<Float64MultiArray>();
+            joint->data.assign(7, 0.0);
+            vel_pub_->publish(std::move(joint));
+        }
+    }
+
+    void setPoseActive(bool active)
+    {
+        auto m = std::make_unique<std_msgs::msg::Bool>();
+        m->data = active;
+        pose_active_pub_->publish(std::move(m));
+    }
+
     void goNamedTarget(const std::string& target)
     {
         enabled_ = false;
         if (use_servo_) servo_->setPaused(true);
-        { auto m = std::make_unique<std_msgs::msg::Bool>(); m->data = true; pose_active_pub_->publish(std::move(m)); }
-        rclcpp::sleep_for(std::chrono::milliseconds(50));  // 等 FSM 切到 POSE 并完成位置同步
 
-        // 取消 arm_controller 对上次轨迹终点的 hold
+        // 停止遥操作输出，等待硬件侧回到当前位置保持，再基于真实当前状态规划。
+        publishTeleopHold();
         move_group_->stop();
-        rclcpp::sleep_for(std::chrono::milliseconds(50));
+        rclcpp::sleep_for(std::chrono::milliseconds(120));
 
         RCLCPP_INFO(node_->get_logger(), "[PLAN] → %s", target.c_str());
+        bool pose_started = false;
         try
         {
+            // 设置起点为当前关节状态
             if (last_joint_state_ && !last_joint_state_->position.empty())
             {
                 moveit::core::RobotState start_state(move_group_->getRobotModel());
@@ -200,25 +223,38 @@ private:
             }
             else { move_group_->setStartStateToCurrentState(); }
             move_group_->setNamedTarget(target);
-            auto target_map = move_group_->getNamedTargetValues(target);
-            if (!target_map.empty()) {
-                const char* jn[7] = {"joint1","joint2","joint3","joint4","joint5","joint6","joint7"};
-                std::vector<double> vals(7, 0.0);
-                for (int i = 0; i < 7; ++i) vals[i] = target_map[jn[i]];
-                auto msg = std::make_unique<Float64MultiArray>();
-                msg->data = vals;
-                joint_pos_pub_->publish(std::move(msg));
-                // 等硬件接口完成插值（750 帧 @ 500Hz ≈ 1.5s），额外加 200ms 余量
-                rclcpp::sleep_for(std::chrono::milliseconds(1700));
-                RCLCPP_INFO(node_->get_logger(), "[PLAN] interpolated → %s", target.c_str());
-            } else RCLCPP_WARN(node_->get_logger(), "[PLAN] target not found");
+
+            // 规划轨迹
+            moveit::planning_interface::MoveGroupInterface::Plan plan;
+            auto success = move_group_->plan(plan);
+            if (success == moveit::core::MoveItErrorCode::SUCCESS)
+            {
+                // 执行前才进入 POSE，避免规划期间 arm_controller 旧终点泄漏。
+                setPoseActive(true);
+                pose_started = true;
+                rclcpp::sleep_for(std::chrono::milliseconds(20));
+
+                RCLCPP_INFO(node_->get_logger(), "[PLAN] executing → %s", target.c_str());
+                move_group_->execute(plan);  // 阻塞直到轨迹执行完成
+            }
+            else
+            {
+                RCLCPP_ERROR(node_->get_logger(), "[PLAN] plan failed for %s", target.c_str());
+            }
         }
         catch (const std::exception& e)
         {
             RCLCPP_ERROR(node_->get_logger(), "[PLAN] %s", e.what());
         }
+
+        // 退出 POSE → IDLE（同步到反馈 = 保持在目标位姿）
+        if (pose_started)
+        {
+            setPoseActive(false);
+            rclcpp::sleep_for(std::chrono::milliseconds(100));
+        }
+
         if (use_servo_) servo_->setPaused(false);
-        { auto m = std::make_unique<std_msgs::msg::Bool>(); m->data = false; pose_active_pub_->publish(std::move(m)); }
         enabled_ = true;
         RCLCPP_INFO(node_->get_logger(), "[PLAN] resumed");
     }

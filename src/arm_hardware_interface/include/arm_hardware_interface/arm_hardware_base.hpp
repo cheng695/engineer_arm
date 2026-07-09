@@ -137,12 +137,6 @@ protected:
     std::atomic<int> joint_vel_countdown_{0};
     std::atomic<bool> joint_pos_pending_{false};
 
-    // POSE 目标位姿插值
-    std::vector<double> pose_interp_start_;
-    std::vector<double> pose_interp_target_;
-    int    pose_interp_counter_{0};
-    static constexpr int kPoseInterpTotal = 750;  // 1.5s @ 500Hz
-
     // ================================================================
     // 电机使能 / 保持（原子标志，由内部 ROS 订阅回调设置）
     // ================================================================
@@ -157,6 +151,9 @@ protected:
     int safe_zero_frames_{0};
     std::vector<double> integrated_pos_;
     bool vel_mode_active_{false};
+    int pose_guard_count_{0};
+    bool pose_waiting_for_current_command_{false};
+    ControlFsm::State previous_control_state_{ControlFsm::State::STOP};
 
     // ================================================================
     // 内部 ROS 节点（独立 spin 线程，不触碰实时循环）

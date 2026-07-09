@@ -237,19 +237,29 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
     if (fsm_.justEnteredDls()) sync_all();
     if (fsm_.justEnteredJoint()) sync_all();
 
-    // 进 POSE 那一帧：同步到反馈（挡住 arm_controller 的旧 hold），后续帧不插手
-    static auto prev_state = ControlFsm::State::STOP;
+    // POSE 接管：先等待 arm_controller 给出贴近当前反馈的命令，再释放给轨迹控制器。
+    // 这样 DLS/JOINT 后不会被 joint_trajectory_controller 的旧终点拉回去。
+    static constexpr int kPoseGuardFrames = 25;  // 50ms @ 500Hz
+    static constexpr double kPoseStartTolerance = 0.05;  // rad
     auto cur_state = fsm_.state();
-    if (cur_state == ControlFsm::State::POSE && prev_state != ControlFsm::State::POSE)
+    if (cur_state == ControlFsm::State::POSE && previous_control_state_ != ControlFsm::State::POSE)
     {
-        // 直接用关节反馈值，防止 arm_controller 残留的旧轨迹末端位置导致跳变
-        for (size_t i = 0; i < kJointCount; ++i)
-            hw_commands_pos_[i] = hw_states_pos_[i];
+        pose_guard_count_ = 0;
+        pose_waiting_for_current_command_ = true;
         dls_twist_countdown_.store(0, std::memory_order_release);
         joint_vel_countdown_.store(0, std::memory_order_release);
-        RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[FSM] → POSE, synced to feedback");
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[FSM] → POSE, waiting for current-state trajectory command");
     }
-    prev_state = cur_state;
+    previous_control_state_ = cur_state;
+
+    auto hold_current_position = [&]()
+    {
+        for (size_t i = 0; i < kJointCount; ++i) {
+            hw_commands_pos_[i] = hw_states_pos_[i];
+            hw_commands_vel_[i] = 0.0;
+        }
+    };
 
     // ---- 执行控制 ----
     switch (fsm_.state())
@@ -299,7 +309,8 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
 
     case ControlFsm::State::IDLE:
         // 每帧同步期望到反馈，确保下次进入控制状态不跳变
-        for (size_t i = 0; i < kJointCount; ++i) {
+        for (size_t i = 0; i < kJointCount; ++i) 
+        {
             hw_commands_pos_[i] = hw_states_pos_[i];
             hw_commands_vel_[i] = 0.0;
         }
@@ -307,60 +318,39 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
         return true;
 
     case ControlFsm::State::POSE:
-        // 收到新的目标位姿：启动插值
-        if (joint_pos_pending_.exchange(false, std::memory_order_acquire))
+    {
+        if (pose_waiting_for_current_command_)
         {
-            if (joint_pos_target_.size() >= kJointCount)
+            bool command_matches_current = true;
+            for (size_t i = 0; i < kJointCount; ++i)
             {
-                // 从当前反馈位置插值到目标
-                pose_interp_start_.resize(kJointCount);
-                pose_interp_target_.resize(kJointCount);
-                for (size_t i = 0; i < kJointCount; ++i)
+                if (std::abs(hw_commands_pos_[i] - hw_states_pos_[i]) > kPoseStartTolerance)
                 {
-                    pose_interp_start_[i]  = hw_states_pos_[i];
-                    pose_interp_target_[i] = std::clamp(static_cast<double>(joint_pos_target_[i]),
-                                                        joint_lower_limits_[i],
-                                                        joint_upper_limits_[i]);
+                    command_matches_current = false;
+                    break;
                 }
-                pose_interp_counter_ = kPoseInterpTotal;
-                RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-                    "[POSE] interpolating over %d frames", kPoseInterpTotal);
             }
+
+            if (!command_matches_current)
+            {
+                hold_current_position();
+                return false;
+            }
+
+            pose_waiting_for_current_command_ = false;
+            pose_guard_count_ = kPoseGuardFrames;
+            RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+                "[FSM] POSE trajectory accepted, guard=%d frames", kPoseGuardFrames);
         }
 
-        // 插值执行中
-        if (pose_interp_counter_ > 0)
+        if (pose_guard_count_ > 0)
         {
-            double t = 1.0 - static_cast<double>(pose_interp_counter_) / kPoseInterpTotal;
-            for (size_t i = 0; i < kJointCount && i < pose_interp_start_.size(); ++i)
-            {
-                hw_commands_pos_[i] = pose_interp_start_[i] +
-                                      t * (pose_interp_target_[i] - pose_interp_start_[i]);
-                hw_commands_vel_[i] = 0.0;
-            }
-            --pose_interp_counter_;
+            hold_current_position();
+            --pose_guard_count_;
         }
-        else if (pose_interp_counter_ == 0 && !pose_interp_start_.empty())
-        {
-            // 插值完成，hold 在目标
-            for (size_t i = 0; i < kJointCount && i < pose_interp_target_.size(); ++i)
-            {
-                hw_commands_pos_[i] = pose_interp_target_[i];
-                hw_commands_vel_[i] = 0.0;
-            }
-            // 标记完成（只 hold，不重复 log）
-            pose_interp_counter_ = -1;
-        }
-        else
-        {
-            // 还没收到目标位姿：保持当前位置，防止 arm_controller
-            // (joint_trajectory_controller) 在上一个轨迹终点持续写入导致跳变
-            for (size_t i = 0; i < kJointCount; ++i) {
-                hw_commands_pos_[i] = hw_states_pos_[i];
-                hw_commands_vel_[i] = 0.0;
-            }
-        }
+
         return false;
+    }
 
     case ControlFsm::State::STOP:
         // STOP：持续同步指令到反馈位置
@@ -371,6 +361,8 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
         }
         return false;
     }
+
+    return false;
 }
 
 }  // namespace arm_hardware_interface
