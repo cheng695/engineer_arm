@@ -65,6 +65,8 @@ private:
     // ---- CAN 通信 ----
     void read_can_feedback();
     void send_can_commands();
+    void refresh_feedback_before_enable();
+    void sync_control_targets_to_feedback();
 
     // ---- 电机控制 ----
     void process_motor_requests();

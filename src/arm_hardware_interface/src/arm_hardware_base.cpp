@@ -121,8 +121,11 @@ void ArmHardwareBase::setup_internal_node(const std::string& node_name)
         [this](const geometry_msgs::msg::TwistStamped::SharedPtr m) {
             dls_twist_ = {m->twist.linear.x, m->twist.linear.y, m->twist.linear.z,
                            m->twist.angular.x, m->twist.angular.y, m->twist.angular.z};
-            dls_twist_countdown_.store(kDlsTimeout, std::memory_order_release);
-            fsm_.onTwist();
+            const bool active =
+                std::any_of(dls_twist_.begin(), dls_twist_.end(),
+                    [](double v) { return std::abs(v) > 1e-6; });
+            dls_twist_countdown_.store(active ? kDlsTimeout : 0, std::memory_order_release);
+            if (active) fsm_.onTwist();
         });
 
     joint_vel_sub_ = internal_node_->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -130,8 +133,11 @@ void ArmHardwareBase::setup_internal_node(const std::string& node_name)
         [this](const std_msgs::msg::Float64MultiArray::SharedPtr m) {
             if (m->data.size() >= kJointCount) {
                 std::copy_n(m->data.begin(), kJointCount, joint_vel_target_.begin());
-                joint_vel_countdown_.store(kDlsTimeout, std::memory_order_release);
-                fsm_.onJoint();
+                const bool active =
+                    std::any_of(joint_vel_target_.begin(), joint_vel_target_.end(),
+                        [](double v) { return std::abs(v) > 1e-6; });
+                joint_vel_countdown_.store(active ? kDlsTimeout : 0, std::memory_order_release);
+                if (active) fsm_.onJoint();
             }
         });
 

@@ -166,8 +166,7 @@ hardware_interface::return_type RealArmHardwareInterface::write(
 
     if (safe_zero_frames_ > 0)
     {
-        for (size_t i = 0; i < info_.joints.size(); ++i)
-            { hw_commands_vel_[i] = 0.0; hw_commands_eff_[i] = 0.0; }
+        sync_control_targets_to_feedback();
         send_can_commands();
         safe_zero_frames_--;
         return hardware_interface::return_type::OK;
@@ -344,6 +343,45 @@ void RealArmHardwareInterface::read_can_feedback()
     }
 }
 
+void RealArmHardwareInterface::refresh_feedback_before_enable()
+{
+    for (int n = 0; n < 3; ++n)
+    {
+        for (size_t i = 0; i < info_.joints.size(); ++i)
+        {
+            if (!use_real_joint_io_[i]) continue;
+            hw_commands_pos_[i] = hw_states_pos_[i];
+            hw_commands_vel_[i] = 0.0;
+            hw_commands_eff_[i] = 0.0;
+        }
+
+        send_can_commands();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        read_can_feedback();
+        echo_mock_joints(info_);
+        apply_j2j3_coupling();
+    }
+}
+
+void RealArmHardwareInterface::sync_control_targets_to_feedback()
+{
+    std::vector<double> cur_pos(kJointCount, 0.0);
+    for (size_t i = 0; i < std::min(kJointCount, hw_states_pos_.size()); ++i)
+    {
+        cur_pos[i] = hw_states_pos_[i];
+        hw_commands_pos_[i] = hw_states_pos_[i];
+        hw_commands_vel_[i] = 0.0;
+        hw_commands_eff_[i] = 0.0;
+    }
+
+    std::fill(dls_twist_.begin(), dls_twist_.end(), 0.0);
+    std::fill(joint_vel_target_.begin(), joint_vel_target_.end(), 0.0);
+    dls_twist_countdown_.store(0, std::memory_order_release);
+    joint_vel_countdown_.store(0, std::memory_order_release);
+    dls_controller_.SyncPositions(cur_pos);
+    joint_controller_.SyncPositions(cur_pos);
+}
+
 // ================================================================
 // 电机控制请求
 // ================================================================
@@ -357,22 +395,27 @@ void RealArmHardwareInterface::process_motor_requests()
 
 void RealArmHardwareInterface::enable_motors()
 {
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        hw_commands_pos_[i] = hw_states_pos_[i];
-        hw_commands_vel_[i] = 0.0;
-        hw_commands_eff_[i] = 0.0;
-    }
+    refresh_feedback_before_enable();
+    sync_control_targets_to_feedback();
+    fsm_.onEnable();
+    fsm_.update(false, false);
 
     device_collection_.enableAll();
 
     motors_enabled_ = true;
     safe_zero_frames_ = kSafeZeroFrames;
-    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[POWER] 使能 (%d 帧暖启动)", kSafeZeroFrames);
+    RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+        "[POWER] 使能，同步当前位置 J1=%.3f J2=%.3f (%d 帧暖启动)",
+        hw_states_pos_.size() > 0 ? hw_states_pos_[0] : 0.0,
+        hw_states_pos_.size() > 1 ? hw_states_pos_[1] : 0.0,
+        kSafeZeroFrames);
 }
 
 void RealArmHardwareInterface::disable_motors()
 {
+    fsm_.onDisable();
+    fsm_.update(false, false);
+    sync_control_targets_to_feedback();
     motors_enabled_ = false;
     device_collection_.disableAll();
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[POWER] 失能");
@@ -407,8 +450,15 @@ void RealArmHardwareInterface::send_can_commands()
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         if (!use_real_joint_io_[i]) continue;
-        cmd_pos[motor_idx] = hw_commands_pos_[i];
-        cmd_vel[motor_idx] = hw_commands_vel_[i];
+        double pos = hw_commands_pos_[i];
+        double vel = hw_commands_vel_[i];
+        if (i == kJ3Index && use_real_joint_io_[kJ2Index])
+        {
+            pos -= j2j3_coupling_ * hw_commands_pos_[kJ2Index];
+            vel -= j2j3_coupling_ * hw_commands_vel_[kJ2Index];
+        }
+        cmd_pos[motor_idx] = pos;
+        cmd_vel[motor_idx] = vel;
         cmd_eff[motor_idx] = hw_commands_eff_[i] + (i < grav.size() ? grav[i] : 0.0);
         motor_idx++;
     }
