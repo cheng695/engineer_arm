@@ -1,0 +1,11 @@
+<library path="arm_hardware_interface">
+  <class name="arm_hardware_interface/MockArmHardwareInterface"
+         type="arm_hardware_interface::MockArmHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Mock/simulation hardware interface. Echoes commands back as states.
+      Supports GravityCompensator and FDCC for simulation testing.
+      No CAN bus dependency.
+    </description>
+  </class>
+</library>

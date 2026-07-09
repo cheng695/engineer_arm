@@ -42,10 +42,10 @@ public:
     double j1() const { return -apply_deadzone(axes_[0]); }
     double j2() const { return -apply_deadzone(axes_[1]); }
     double j3() const { return -apply_deadzone(axes_[4]); }
-    double j4() const { return l3_hold_ ? 0.0 : -apply_deadzone(axes_[3]); }
+    double j4() const { return J7_hold_ ? 0.0 : -apply_deadzone(axes_[3]); }
     double j5() const { return apply_deadzone(dpad_up_ - dpad_down_); }
     double j6() const { return apply_deadzone(dpad_right_ - dpad_left_); }
-    double j7() const { return l3_hold_ ? -apply_deadzone(axes_[3]) : 0.0; }
+    double j7() const { return J7_hold_ ? -apply_deadzone(axes_[3]) : 0.0; }
 
     // ==========================================================
     // 瞬时按键（当前帧状态）
@@ -53,8 +53,8 @@ public:
 
     bool a_btn()         const { return button(0); }
     bool b_btn()         const { return button(1); }
-    bool x_btn()         const { return button(3); }
-    bool y_btn()         const { return button(2); }
+    bool x_btn()         const { return button(2); }
+    bool y_btn()         const { return button(3); }
     bool open_gripper()  const { return button(4); }
     bool close_gripper() const { return button(5); }
 
@@ -62,12 +62,12 @@ public:
     // 边沿触发（上升沿为 true，需在 update() 之后尽快消费）
     // ================================================================
 
-    bool stop()      const { return rt_rising_ && !paused_; }
-    bool continue_() const { return rt_rising_ && paused_; }
-    bool enable()    const { return guide_rising_ && !motors_on_; }
-    bool disable()   const { return guide_rising_ && motors_on_; }
-    bool joint()     const { return r3_rising_ && mode_is_cartesian_; }
-    bool cartesian() const { return r3_rising_ && !mode_is_cartesian_; }
+    bool stop()      const { return stop_rising_ && !paused_; }
+    bool continue_() const { return stop_rising_ && paused_; }
+    bool enable()    const { return enable_rising_ && !motors_on_; }
+    bool disable()   const { return enable_rising_ && motors_on_; }
+    bool joint()     const { return change_rising_ && mode_is_cartesian_; }
+    bool cartesian() const { return change_rising_ && !mode_is_cartesian_; }
 
     // ================================================================
     // 状态查询
@@ -110,31 +110,31 @@ private:
         return (i < kMaxButtons) && buttons_[i];
     }
 
-    static constexpr size_t kMaxButtons = 17;
+    static constexpr size_t kMaxButtons = 10;
 
     // ---- 摇杆 ----
-    std::array<double, 6> axes_{};      //< 摇杆轴原始值 [LX, LY, LT, RX, RY, RT]
-    double dpad_up_{0.0};               //< D-Pad 上 (0=松开, 1=按下)
+    std::array<double, 8> axes_{};      //< 摇杆轴原始值 
+    double dpad_up_{0.0};               //< D-Pad 上
     double dpad_down_{0.0};             //< D-Pad 下
     double dpad_left_{0.0};             //< D-Pad 左
     double dpad_right_{0.0};            //< D-Pad 右
-    bool l3_hold_{false};               //< L3 是否按住，用于 J4/J7 切换
+    bool J7_hold_{false};               //< 左摇杆 是否按住，用于 J4/J7 切换
 
     // ---- 当前帧按钮（每帧 update 刷新） ----
-    bool guide_pressed_{false};         //< Guide 当前帧按下
-    bool rt_pressed_{false};            //< RT 当前帧按下（轴值或按键回退）
-    bool r3_pressed_{false};            //< R3 当前帧按下
+    bool enable_pressed_{false};        //< SELECT 当前帧按下
+    bool stop_pressed_{false};          //< START 当前帧按下（轴值或按键回退）
+    bool change_pressed_{false};        //< 右摇杆 当前帧按下
     std::array<bool, kMaxButtons> buttons_{}; //< 全部按钮当前帧状态
 
     // ---- 边沿检测（上升沿为 true，仅持续一帧） ----
-    bool guide_rising_{false};          //< Guide 上升沿：松→按
-    bool rt_rising_{false};             //< RT 上升沿
-    bool r3_rising_{false};             //< R3 上升沿
+    bool enable_rising_{false};          //< SELECT 上升沿：松→按
+    bool stop_rising_{false};            //< START 上升沿
+    bool change_rising_{false};          //< 右摇杆 上升沿
 
     // ---- 持久状态（跨帧保持，由边沿翻转） ----
-    bool motors_on_{false};             //< 电机是否使能 (Guide ↑翻转)
-    bool paused_{false};                //< 是否暂停 (RT ↑翻转)
-    bool mode_is_cartesian_{false};     //< 笛卡尔/关节模式 (R3 ↑翻转)
+    bool motors_on_{false};             //< 电机是否使能 (SELECT ↑翻转)
+    bool paused_{false};                //< 是否暂停 (START ↑翻转)
+    bool mode_is_cartesian_{false};     //< 笛卡尔/关节模式 (右摇杆 ↑翻转)
 };
 
 }  // namespace remote

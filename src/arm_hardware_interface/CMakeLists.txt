@@ -7,7 +7,6 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(arm_can REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -21,16 +20,31 @@ find_package(pinocchio REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(moveit_core REQUIRED)
 
-# Define hardware interface library
-add_library(${PROJECT_NAME} SHARED
-  src/arm_hardware_interface.cpp
-  src/fdcc_controller.cpp
+# arm_can is optional — only RealArmHardwareInterface needs it
+find_package(arm_can QUIET)
+
+# Shared sources (always built)
+set(LIB_SOURCES
+  src/arm_hardware_base.cpp
+  src/mock_arm_hardware_interface.cpp
+  src/dls_controller.cpp
+  src/control_fsm.cpp
   src/remote.cpp
-  src/arm_joint.cpp
+  src/joint_controller.cpp
   src/gravity_compensator.cpp
-  src/arm_cartesian.cpp
   src/pinocchio_kinematics_plugin.cpp
 )
+
+# Conditionally add real plugin
+if(arm_can_FOUND)
+  list(APPEND LIB_SOURCES src/real_arm_hardware_interface.cpp)
+  message(STATUS "arm_can FOUND — building RealArmHardwareInterface")
+else()
+  message(STATUS "arm_can NOT FOUND — building only MockArmHardwareInterface")
+endif()
+
+# Define hardware interface library
+add_library(${PROJECT_NAME} SHARED ${LIB_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -38,7 +52,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 ament_target_dependencies(${PROJECT_NAME}
-  arm_can
   hardware_interface
   pluginlib
   rclcpp
@@ -51,6 +64,10 @@ ament_target_dependencies(${PROJECT_NAME}
   moveit_core
 )
 
+if(arm_can_FOUND)
+  ament_target_dependencies(${PROJECT_NAME} arm_can)
+endif()
+
 # Use target_link_libraries for non-ament packages
 target_link_libraries(${PROJECT_NAME}
   pinocchio::pinocchio
@@ -58,7 +75,10 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # Export plugins
-pluginlib_export_plugin_description_file(hardware_interface arm_hardware_interface.xml)
+pluginlib_export_plugin_description_file(hardware_interface mock_arm_hardware_interface.xml)
+if(arm_can_FOUND)
+  pluginlib_export_plugin_description_file(hardware_interface real_arm_hardware_interface.xml)
+endif()
 pluginlib_export_plugin_description_file(moveit_core pinocchio_kinematics_plugin_description.xml)
 
 # Install

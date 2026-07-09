@@ -2,7 +2,7 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -32,7 +32,7 @@ def generate_launch_description():
     ])
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 
-    # SRDF（Servo 需要）
+    # SRDF
     srdf_path = os.path.join(
         get_package_share_directory("my_robot_moveit_config"),
         "config", "my_robot.srdf")
@@ -40,7 +40,7 @@ def generate_launch_description():
         srdf_content = f.read()
     robot_description_semantic = {"robot_description_semantic": srdf_content}
 
-    # 运动学配置（Servo IK 需要，必须和 RViz 用的保持一致）
+    # 运动学配置
     kinematics_path = os.path.join(
         get_package_share_directory("my_robot_moveit_config"),
         "config", "kinematics.yaml")
@@ -70,12 +70,18 @@ def generate_launch_description():
         condition=IfCondition(start_joy),
     )
 
-    joy_to_servo_node = Node(
-        package="my_robot_commander_cpp",
-        executable="joy_to_servo_node",
-        output="screen",
-        parameters=[robot_description, robot_description_semantic, robot_description_kinematics, servo_params],
-    )
+    def make_commander(context):
+        use_servo_str = context.launch_configurations.get("use_servo", "false")
+        use_servo_val = use_servo_str.lower() in ("true", "1", "yes", "on")
+        node = Node(
+            package="my_robot_commander_cpp",
+            executable="joy_to_servo_node",
+            output="screen",
+            parameters=[robot_description, robot_description_semantic,
+                        robot_description_kinematics, servo_params,
+                        {"use_servo": use_servo_val}],
+        )
+        return [node]
 
     return LaunchDescription([
         DeclareLaunchArgument("start_joy", default_value="true"),
@@ -83,6 +89,8 @@ def generate_launch_description():
         DeclareLaunchArgument("joy_deadzone", default_value="0.05"),
         DeclareLaunchArgument("joy_autorepeat_rate", default_value="100.0"),
         DeclareLaunchArgument("joy_coalesce_interval", default_value="0.01"),
+        DeclareLaunchArgument("use_servo", default_value="false",
+            description="Enable MoveIt Servo. Set true for real robot, false for FDCC-only simulation."),
         joy_node,
-        joy_to_servo_node,
+        OpaqueFunction(function=make_commander),
     ])

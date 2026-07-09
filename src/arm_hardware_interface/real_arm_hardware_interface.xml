@@ -1,0 +1,11 @@
+<library path="arm_hardware_interface">
+  <class name="arm_hardware_interface/RealArmHardwareInterface"
+         type="arm_hardware_interface::RealArmHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Production hardware interface for 7-DOF robotic arm with CAN DM-series motors.
+      Handles CAN bus communication, motor enable/disable, safety layers,
+      J2/J3 belt coupling, gravity compensation, and FDCC.
+    </description>
+  </class>
+</library>

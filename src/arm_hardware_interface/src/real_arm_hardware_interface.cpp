@@ -1,40 +1,34 @@
-#include "arm_hardware_interface/arm_hardware_interface.hpp"
+#include "arm_hardware_interface/real_arm_hardware_interface.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <thread>
 #include <set>
 #include <sstream>
+#include <thread>
 
+#include "arm_can/damiao_motor/dm_motor.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
 namespace arm_hardware_interface
 {
 
-namespace
-{
-// 默认限位（当 joint 参数中未指定 lower_limit/upper_limit 时回退使用）
-constexpr double kDefaultLowerLimit = -std::numeric_limits<double>::infinity();
-constexpr double kDefaultUpperLimit =  std::numeric_limits<double>::infinity();
-}  // namespace
-
 // ================================================================
 // 生命周期
 // ================================================================
 
-hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
+hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     const hardware_interface::HardwareInfo& info)
 {
     if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
         return CallbackReturn::ERROR;
 
-    init_joint_buffers();
-    init_joint_limits();
-    init_mock_joints();
+    init_joint_buffers(info);
+    init_joint_limits(info);
+    init_mock_joints(info);
 
-    if (!init_pinocchio())
+    if (!init_gravity_compensator(info))
         RCLCPP_WARN(rclcpp::get_logger("ArmHW"), "重力补偿未启用");
 
     if (!init_motors())
@@ -48,7 +42,7 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
     if (it_coupling != info_.hardware_parameters.end())
         j2j3_coupling_ = std::stod(it_coupling->second);
 
-    // 解析 active_real_joints（允许手动覆盖）
+    // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）
     auto it = info_.hardware_parameters.find("active_real_joints");
     if (it != info_.hardware_parameters.end() && !it->second.empty())
     {
@@ -64,14 +58,8 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
             use_real_joint_io_[i] = active.count(info_.joints[i].name) > 0;
     }
 
-    // 初始化 FDCC 控制器（共享 GravityCompensator 的 Pinocchio 模型）
-    if (gravity_compensator_.is_initialized())
-    {
-        fdcc_controller_.initialize(gravity_compensator_.model(), "tool_link",
-                                     50.0, 5.0, 0.002, -1);  // 不锁定任何关节
-        fdcc_enabled_ = true;
-        RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "FDCC 控制器已初始化");
-    }
+    init_dls();
+    init_joint_controller(info);
 
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "on_init 完成 (%zu 关节, %zu 真实电机)",
         info_.joints.size(),
@@ -79,9 +67,11 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_init(
     return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
+hardware_interface::CallbackReturn RealArmHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
+    setup_internal_node("arm_hw_internal");
+
     int opened = device_collection_.openCANBuses();
 
     for (size_t i = 0; i < info_.joints.size(); ++i)
@@ -94,41 +84,6 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
         "CAN 总线: %d 条已打开", opened);
 
-    internal_node_ = rclcpp::Node::make_shared("arm_hw_internal");
-
-    enable_sub_ = internal_node_->create_subscription<std_msgs::msg::Bool>(
-        "/arm_motor_enable", 10,
-        [this](const std_msgs::msg::Bool::SharedPtr m) {
-            if (m->data) enable_requested_ = true; else disable_requested_ = true;
-        });
-
-    hold_sub_ = internal_node_->create_subscription<std_msgs::msg::Bool>(
-        "/arm_hold_position", 10,
-        [this](const std_msgs::msg::Bool::SharedPtr m) {
-            if (m->data) hold_requested_ = true;
-        });
-
-    // FDCC twist 订阅（非实时，仅缓存最新 twist）
-    fdcc_sub_ = internal_node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-        "/fdcc/twist_cmds", 10,
-        [this](const geometry_msgs::msg::TwistStamped::SharedPtr m) {
-            fdcc_twist_ = {m->twist.linear.x, m->twist.linear.y, m->twist.linear.z,
-                           m->twist.angular.x, m->twist.angular.y, m->twist.angular.z};
-            fdcc_twist_countdown_.store(kFdccTimeout, std::memory_order_release);
-        });
-
-    motors_enabled_ = false;
-    safe_zero_frames_ = 0;
-
-    // 启动 internal_node_ 的独立 spin 线程（处理 /arm_motor_enable /arm_hold_position /fdcc/twist_cmds 订阅）
-    rclcpp::executors::SingleThreadedExecutor::SharedPtr exec =
-        std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
-    exec->add_node(internal_node_);
-    spin_executor_ = exec;
-    spin_thread_ = std::make_unique<std::thread>([exec]() {
-        exec->spin();
-    });
-
     // 从 ROS 参数同步控制增益（覆盖 xacro 默认值）
     sync_control_gains();
 
@@ -136,19 +91,10 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_activate(
     return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::CallbackReturn ArmHardwareInterface::on_deactivate(
+hardware_interface::CallbackReturn RealArmHardwareInterface::on_deactivate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
-    // 停止 internal_node_ 的 spin 线程
-    if (spin_executor_) {
-        spin_executor_->cancel();
-    }
-    if (spin_thread_) {
-        spin_thread_->join();
-        spin_thread_.reset();
-    }
-    spin_executor_.reset();
-
+    teardown_internal_node();
     disable_motors();
     device_collection_.closeCANBuses();
     return CallbackReturn::SUCCESS;
@@ -158,26 +104,26 @@ hardware_interface::CallbackReturn ArmHardwareInterface::on_deactivate(
 // 接口导出
 // ================================================================
 
-std::vector<hardware_interface::StateInterface> ArmHardwareInterface::export_state_interfaces()
+std::vector<hardware_interface::StateInterface> RealArmHardwareInterface::export_state_interfaces()
 {
     std::vector<hardware_interface::StateInterface> ifaces;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_states_pos_[i]);
         ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_states_vel_[i]);
-        ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_states_eff_[i]);
+        ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_EFFORT,   &hw_states_eff_[i]);
     }
     return ifaces;
 }
 
-std::vector<hardware_interface::CommandInterface> ArmHardwareInterface::export_command_interfaces()
+std::vector<hardware_interface::CommandInterface> RealArmHardwareInterface::export_command_interfaces()
 {
     std::vector<hardware_interface::CommandInterface> ifaces;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_commands_pos_[i]);
         ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_commands_vel_[i]);
-        ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_commands_eff_[i]);
+        ifaces.emplace_back(info_.joints[i].name, hardware_interface::HW_IF_EFFORT,   &hw_commands_eff_[i]);
     }
     return ifaces;
 }
@@ -186,30 +132,13 @@ std::vector<hardware_interface::CommandInterface> ArmHardwareInterface::export_c
 // read
 // ================================================================
 
-hardware_interface::return_type ArmHardwareInterface::read(
+hardware_interface::return_type RealArmHardwareInterface::read(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
     read_can_feedback();
-
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        if (!use_real_joint_io_[i])
-        {
-            hw_states_pos_[i] = hw_commands_pos_[i];
-            hw_states_vel_[i] = hw_commands_vel_[i];
-            hw_states_eff_[i] = 0.0;
-        }
-    }
-
+    echo_mock_joints(info_);
     apply_j2j3_coupling();
-
-    if (gravity_compensator_.is_initialized())
-    {
-        auto tau = gravity_compensator_.compute(hw_states_pos_);
-        for (size_t i = 0; i < std::min(tau.size(), hw_states_eff_.size()); ++i)
-            hw_states_eff_[i] = tau[i];
-    }
-
+    apply_gravity_to_effort();
     return hardware_interface::return_type::OK;
 }
 
@@ -217,13 +146,10 @@ hardware_interface::return_type ArmHardwareInterface::read(
 // write
 // ================================================================
 
-hardware_interface::return_type ArmHardwareInterface::write(
+hardware_interface::return_type RealArmHardwareInterface::write(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
 {
-    // FDCC 模式优先：有新 twist 且电机已使能，则走 FDCC 路径
-    if (process_fdcc())
-        return hardware_interface::return_type::OK;
-
+    // 优先处理使能/失能/保持请求（不被 FDCC 阻塞）
     process_motor_requests();
 
     if (!motors_enabled_)
@@ -244,6 +170,13 @@ hardware_interface::return_type ArmHardwareInterface::write(
             { hw_commands_vel_[i] = 0.0; hw_commands_eff_[i] = 0.0; }
         send_can_commands();
         safe_zero_frames_--;
+        return hardware_interface::return_type::OK;
+    }
+
+    // FSM 统一控制
+    if (process_control(info_))
+    {
+        send_can_commands();
         return hardware_interface::return_type::OK;
     }
 
@@ -292,69 +225,16 @@ hardware_interface::return_type ArmHardwareInterface::write(
 }
 
 // ================================================================
-// 初始化辅助
+// 电机初始化
 // ================================================================
 
-void ArmHardwareInterface::init_joint_buffers()
-{
-    const size_t n = info_.joints.size();
-    hw_states_pos_.resize(n, 0.0);   hw_states_vel_.resize(n, 0.0);   hw_states_eff_.resize(n, 0.0);
-    hw_commands_pos_.resize(n, 0.0); hw_commands_vel_.resize(n, 0.0); hw_commands_eff_.resize(n, 0.0);
-    use_real_joint_io_.resize(n, true);
-}
-
-void ArmHardwareInterface::init_joint_limits()
-{
-    for (const auto& j : info_.joints)
-    {
-        double lo = kDefaultLowerLimit, hi = kDefaultUpperLimit;
-
-        auto it_lo = j.parameters.find("lower_limit");
-        if (it_lo != j.parameters.end())
-            lo = std::stod(it_lo->second);
-
-        auto it_hi = j.parameters.find("upper_limit");
-        if (it_hi != j.parameters.end())
-            hi = std::stod(it_hi->second);
-
-        joint_lower_limits_.push_back(lo);
-        joint_upper_limits_.push_back(hi);
-    }
-}
-
-void ArmHardwareInterface::init_mock_joints()
-{
-    // 没有 can_id 参数的关节自动标记为 Mock（如夹爪）
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        if (info_.joints[i].parameters.find("can_id") == info_.joints[i].parameters.end())
-            use_real_joint_io_[i] = false;
-    }
-}
-
-bool ArmHardwareInterface::init_pinocchio()
-{
-    auto it = info_.hardware_parameters.find("robot_description");
-    if (it == info_.hardware_parameters.end())
-        return false;
-
-    const auto& value = it->second;
-    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "robot_description (%zu 字符)", value.size());
-
-    // 如果是文件路径（以 / 开头或包含 .urdf），用文件方式加载
-    if (value.size() < 500 && (value[0] == '/' || value.find(".urdf") != std::string::npos))
-        return gravity_compensator_.initialize_from_file(value, rclcpp::get_logger("ArmHW"));
-    else
-        return gravity_compensator_.initialize(value, rclcpp::get_logger("ArmHW"));
-}
-
-bool ArmHardwareInterface::init_motors()
+bool RealArmHardwareInterface::init_motors()
 {
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         const auto& j = info_.joints[i];
 
-        // 没有 can_id 的关节由 mock_joints 处理，跳过电机创建
+        // 没有 can_id 的关节由 init_mock_joints 处理，跳过电机创建
         auto it_id = j.parameters.find("can_id");
         if (it_id == j.parameters.end())
         {
@@ -395,9 +275,13 @@ bool ArmHardwareInterface::init_motors()
     return true;
 }
 
-void ArmHardwareInterface::sync_control_gains()
+// ================================================================
+// 控制增益同步
+// ================================================================
+
+void RealArmHardwareInterface::sync_control_gains()
 {
-    // 从 ROS 参数读取控制增益，覆盖 xacro 默认值（对标 OpenArm control_gains.yaml）
+    // 从 ROS 参数读取控制增益，覆盖 xacro 默认值
     if (!internal_node_)
         return;
 
@@ -436,17 +320,15 @@ void ArmHardwareInterface::sync_control_gains()
 }
 
 // ================================================================
-// read 辅助
+// CAN 反馈读取
 // ================================================================
 
-void ArmHardwareInterface::read_can_feedback()
+void RealArmHardwareInterface::read_can_feedback()
 {
     device_collection_.readFeedback();
 
-    // 注意：device_collection_ 只包含 CAN 电机，索引与关节不完全对应
-    // 我们需要通过 can_id 来查找，但这里简化为：
-    // - CAN 电机的索引按添加顺序（跳过 Mock 关节后的顺序）
-    // - Mock 关节在上层已通过 use_real_joint_io_[i] 标记
+    // device_collection_ 只包含 CAN 电机，索引与关节不完全对应
+    // 这里按 CAN 电机添加顺序读取（跳过 Mock 关节）
     size_t motor_idx = 0;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
@@ -462,29 +344,18 @@ void ArmHardwareInterface::read_can_feedback()
     }
 }
 
-void ArmHardwareInterface::apply_j2j3_coupling()
-{
-    if (use_real_joint_io_[kJ2Index] && use_real_joint_io_[kJ3Index])
-    {
-        double raw_j3_pos = hw_states_pos_[kJ3Index];
-        double raw_j3_vel = hw_states_vel_[kJ3Index];
-        hw_states_pos_[kJ3Index] = raw_j3_pos + j2j3_coupling_ * hw_states_pos_[kJ2Index];
-        hw_states_vel_[kJ3Index] = raw_j3_vel + j2j3_coupling_ * hw_states_vel_[kJ2Index];
-    }
-}
-
 // ================================================================
-// 电机控制
+// 电机控制请求
 // ================================================================
 
-void ArmHardwareInterface::process_motor_requests()
+void RealArmHardwareInterface::process_motor_requests()
 {
     if (enable_requested_.exchange(false))  enable_motors();
     if (disable_requested_.exchange(false)) disable_motors();
     if (hold_requested_.exchange(false))    hold_position();
 }
 
-void ArmHardwareInterface::enable_motors()
+void RealArmHardwareInterface::enable_motors()
 {
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
@@ -500,14 +371,14 @@ void ArmHardwareInterface::enable_motors()
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[POWER] 使能 (%d 帧暖启动)", kSafeZeroFrames);
 }
 
-void ArmHardwareInterface::disable_motors()
+void RealArmHardwareInterface::disable_motors()
 {
     motors_enabled_ = false;
     device_collection_.disableAll();
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[POWER] 失能");
 }
 
-void ArmHardwareInterface::hold_position()
+void RealArmHardwareInterface::hold_position()
 {
     for (size_t i = 0; i < info_.joints.size(); ++i)
         { hw_commands_pos_[i] = hw_states_pos_[i]; hw_commands_vel_[i] = 0.0; }
@@ -516,17 +387,17 @@ void ArmHardwareInterface::hold_position()
 }
 
 // ================================================================
-// CAN 交替发送
+// CAN 指令发送（含重力前馈 + 安全限幅）
 // ================================================================
 
-void ArmHardwareInterface::send_can_commands()
+void RealArmHardwareInterface::send_can_commands()
 {
     std::vector<double> grav(kJointCount, 0.0);
-    if (gravity_compensator_.is_initialized())
-        grav = gravity_compensator_.compute(hw_states_pos_);
+    // 暂时关闭重力补偿测试
+    // if (gravity_compensator_.is_initialized())
+    //     grav = gravity_compensator_.compute(hw_states_pos_);
 
     // 构建电机级命令（仅 CAN 电机，不含 Mock 关节）
-    // device_collection_ 中电机按添加顺序排列（与关节顺序相同，但只含 CAN 关节）
     size_t n_motors = device_collection_.size();
     std::vector<double> cmd_pos(n_motors, 0.0);
     std::vector<double> cmd_vel(n_motors, 0.0);
@@ -545,51 +416,8 @@ void ArmHardwareInterface::send_can_commands()
     device_collection_.sendCommands(cmd_pos, cmd_vel, cmd_eff);
 }
 
-bool ArmHardwareInterface::process_fdcc()
-{
-    if (!fdcc_enabled_) return false;
-
-    int countdown = fdcc_twist_countdown_.load(std::memory_order_acquire);
-    if (countdown <= 0) return false;
-    fdcc_twist_countdown_.store(countdown - 1, std::memory_order_release);
-
-    RCLCPP_INFO_ONCE(rclcpp::get_logger("ArmHW"), "[FDCC] ACTIVE — J^T 路径运行中");
-
-    // 调试：每秒打印一次 twist 值（看线速度和角速度有没有搞反）
-    static auto last_debug = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_debug).count() >= 1)
-    {
-        last_debug = now;
-        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-            "[FDCC] twist: lin=[%.3f %.3f %.3f] ang=[%.3f %.3f %.3f]",
-            fdcc_twist_[0], fdcc_twist_[1], fdcc_twist_[2],
-            fdcc_twist_[3], fdcc_twist_[4], fdcc_twist_[5]);
-    }
-
-    // 将 twist 发给 FDCC 控制器，计算 {pos, vel, eff}
-    auto outputs = fdcc_controller_.compute(fdcc_twist_, hw_states_pos_, hw_states_vel_);
-
-    // 覆盖所有 7 个臂关节的命令（含 Mock），含 NaN 安全检查
-    for (size_t i = 0; i < std::min(outputs.size(), info_.joints.size()); ++i)
-    {
-        if (std::isnan(outputs[i].pos) || std::isnan(outputs[i].vel) || std::isnan(outputs[i].eff))
-        {
-            RCLCPP_ERROR_ONCE(rclcpp::get_logger("ArmHW"), "[FDCC] NaN detected at joint %zu, aborting", i);
-            return false;
-        }
-        hw_commands_pos_[i] = std::clamp(outputs[i].pos,
-            joint_lower_limits_[i], joint_upper_limits_[i]);
-        hw_commands_vel_[i] = std::clamp(outputs[i].vel, -30.0, 30.0);
-        hw_commands_eff_[i] = outputs[i].eff;
-    }
-
-    send_can_commands();
-    return true;
-}
-
 }  // namespace arm_hardware_interface
 
 PLUGINLIB_EXPORT_CLASS(
-    arm_hardware_interface::ArmHardwareInterface,
+    arm_hardware_interface::RealArmHardwareInterface,
     hardware_interface::SystemInterface)

@@ -5,10 +5,10 @@
     <ros2_control name="${name}" type="system">
       <hardware>
         <xacro:if value="${use_mock_hardware}">
-          <plugin>mock_components/GenericSystem</plugin>
+          <plugin>arm_hardware_interface/MockArmHardwareInterface</plugin>
         </xacro:if>
         <xacro:unless value="${use_mock_hardware}">
-          <plugin>arm_hardware_interface/ArmHardwareInterface</plugin>
+          <plugin>arm_hardware_interface/RealArmHardwareInterface</plugin>
         </xacro:unless>
         <param name="robot_description">${robot_description_file}</param>
         <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
@@ -27,8 +27,8 @@
         <param name="can_id">1</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">120.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">30.0</param>
+        <param name="kd">1.0</param>
         <param name="lower_limit">-2.3562</param>
         <param name="upper_limit">2.3562</param>
         <param name="direction">-1.0</param>
@@ -60,8 +60,8 @@
         <param name="can_id">3</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">0.1</param>
-        <param name="kd">0.1</param>
+        <param name="kp">120.0</param>
+        <param name="kd">3.0</param>
         <param name="lower_limit">-0.9599</param>
         <param name="upper_limit">0.9599</param>
       </joint>
