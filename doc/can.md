@@ -26,4 +26,4 @@ pkill -9 -f commander; pkill -9 -f joy_node; pkill -9 -f ros2_comtrol; pkill -9 
 
 
 source install/setup.bash
-ros2 launch src/V1.1urdf/view.launch.py
+ros2 launch my_robot_description display.launch.py robot:=v1.1

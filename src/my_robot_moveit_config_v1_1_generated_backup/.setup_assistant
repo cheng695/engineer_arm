@@ -7,4 +7,19 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: whc
     author_email: whc@qq.com
-    generated_timestamp: 1784285563
+    generated_timestamp: 1784298563
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

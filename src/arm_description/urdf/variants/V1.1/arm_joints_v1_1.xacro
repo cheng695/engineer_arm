@@ -17,8 +17,8 @@
     <origin xyz="0 -0.035 0.1165" rpy="0 0 0" />
     <parent link="Link_1" />
     <child link="Link_2" />
-    <axis xyz="0 1 0" />
-    <limit lower="-1.204" upper="0.262" effort="20" velocity="2" />
+    <axis xyz="0 -1 0" />
+    <limit lower="-0.262" upper="1.204" effort="20" velocity="2" />
   </joint>
 
   <!-- ==================== J3: Link_2 → Link_3 ==================== -->

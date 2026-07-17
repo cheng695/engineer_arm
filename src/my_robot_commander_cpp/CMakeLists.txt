@@ -37,7 +37,7 @@ ament_target_dependencies(joy_to_servo_node
 install(TARGETS joy_to_servo_node
   DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch
+install(DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME})
 
 ament_package()

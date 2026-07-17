@@ -1,0 +1,5 @@
+joint_control_profiles:
+  V1.0:
+    joint_control_directions: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  V1.1:
+    joint_control_directions: [1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0]

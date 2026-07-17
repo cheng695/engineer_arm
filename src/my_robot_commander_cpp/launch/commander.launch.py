@@ -34,11 +34,27 @@ def variant_config_dir(moveit_config_pkg, robot_version):
     return variant_dir if os.path.isdir(variant_dir) else os.path.join(moveit_config_pkg, "config")
 
 
-def joint_control_directions(arm_version):
-    normalized = arm_version.lower().replace(".", "_")
-    if normalized in ("v1_1", "1_1"):
-        return [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]
-    return [1.0] * 7
+def variant_name(version):
+    normalized = version.lower().replace(".", "_")
+    variant_names = {
+        "v1_0": "V1.0",
+        "1_0": "V1.0",
+        "v1_1": "V1.1",
+        "1_1": "V1.1",
+    }
+    return variant_names.get(normalized, "V1.0")
+
+
+def load_joint_control_directions(commander_pkg, arm_version):
+    profiles_path = os.path.join(commander_pkg, "config", "joint_control_profiles.yaml")
+    profiles_yaml = load_yaml(profiles_path) or {}
+    profiles = profiles_yaml.get("joint_control_profiles", {})
+    profile = profiles.get(variant_name(arm_version), profiles.get("V1.0", {}))
+    directions = profile.get("joint_control_directions", [1.0] * 7)
+    if not isinstance(directions, list) or len(directions) != 7:
+        raise RuntimeError(
+            f"Invalid joint_control_directions in {profiles_path} for arm_version={arm_version}: {directions}")
+    return [float(direction) for direction in directions]
 
 
 def generate_launch_description():
@@ -63,6 +79,7 @@ def generate_launch_description():
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 
     moveit_config_pkg = get_package_share_directory("my_robot_moveit_config")
+    commander_pkg = get_package_share_directory("my_robot_commander_cpp")
 
     joy_node = Node(
         package="joy",
@@ -111,7 +128,8 @@ def generate_launch_description():
                         {
                             "use_servo": use_servo_val,
                             "arm_version": selected_arm_version,
-                            "joint_control_directions": joint_control_directions(selected_arm_version),
+                            "joint_control_directions": load_joint_control_directions(
+                                commander_pkg, selected_arm_version),
                         }],
         )
         return [node]

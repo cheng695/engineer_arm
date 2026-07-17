@@ -48,8 +48,8 @@
         <param name="can_bus">${can0_interface}</param>
         <param name="kp">120.0</param>
         <param name="kd">3.0</param>
-        <param name="lower_limit">${-1.204 if is_arm_v1_1 else -0.262}</param>
-        <param name="upper_limit">${0.262 if is_arm_v1_1 else 1.134}</param>
+        <param name="lower_limit">${-0.262 if is_arm_v1_1 else -0.262}</param>
+        <param name="upper_limit">${1.204 if is_arm_v1_1 else 1.134}</param>
       </joint>
 
       <joint name="joint3">

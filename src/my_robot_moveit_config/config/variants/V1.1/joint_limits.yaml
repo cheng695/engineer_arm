@@ -1,78 +1,54 @@
-# joint_limits.yaml allows MoveIt to override or augment URDF dynamics.
-# Position limits mirror the V1.1 URDF so this file remains self-documenting.
+# joint_limits.yaml allows the dynamics properties specified in the URDF to be overwritten or augmented as needed
 
+# For beginners, we downscale velocity and acceleration limits.
+# You can always specify higher scaling factors (<= 1.0) in your motion requests.  # Increase the values below to 1.0 to always move at maximum speed.
 default_velocity_scaling_factor: 1.0
 default_acceleration_scaling_factor: 1.0
 
+# Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]
+# Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
 joint_limits:
   joint1:
-    has_position_limits: true
-    min_position: -2.3562
-    max_position: 2.3562
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint2:
-    has_position_limits: true
-    min_position: -1.204
-    max_position: 0.262
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint3:
-    has_position_limits: true
-    min_position: -0.9599
-    max_position: 1.221
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint4:
-    has_position_limits: true
-    min_position: -2.3562
-    max_position: 2.3562
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint5:
-    has_position_limits: true
-    min_position: -0.78
-    max_position: 1.57
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint6:
-    has_position_limits: true
-    min_position: -1.57
-    max_position: 1.57
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint7:
-    has_position_limits: true
-    min_position: -1.57
-    max_position: 1.57
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint_left_finger:
-    has_position_limits: true
-    min_position: 0.0
-    max_position: 0.04
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
     max_acceleration: 0.0
   joint_right_finger:
-    has_position_limits: true
-    min_position: -0.04
-    max_position: 0.0
     has_velocity_limits: true
     max_velocity: 2.0
     has_acceleration_limits: false
