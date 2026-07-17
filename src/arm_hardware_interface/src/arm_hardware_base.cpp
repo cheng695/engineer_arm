@@ -202,8 +202,12 @@ void ArmHardwareBase::apply_j2j3_coupling()
     {
         double raw_j3_pos = hw_states_pos_[kJ3Index];
         double raw_j3_vel = hw_states_vel_[kJ3Index];
+        double raw_j2_eff = hw_states_eff_[kJ2Index];
+        double raw_j3_eff = hw_states_eff_[kJ3Index];
         hw_states_pos_[kJ3Index] = raw_j3_pos + j2j3_coupling_ * hw_states_pos_[kJ2Index];
         hw_states_vel_[kJ3Index] = raw_j3_vel + j2j3_coupling_ * hw_states_vel_[kJ2Index];
+        hw_states_eff_[kJ2Index] = raw_j2_eff - j2j3_coupling_ * raw_j3_eff;
+        hw_states_eff_[kJ3Index] = raw_j3_eff;
     }
 }
 
@@ -214,6 +218,31 @@ void ArmHardwareBase::apply_gravity_to_effort()
         auto tau = gravity_compensator_.compute(hw_states_pos_);
         for (size_t i = 0; i < std::min(tau.size(), hw_states_eff_.size()); ++i)
             hw_states_eff_[i] = tau[i];
+
+        // 调试阶段：只观察 Pinocchio 计算出的重力力矩，不在 send_can_commands() 中叠加到电机命令。
+        if (++gravity_debug_counter_ >= 250)
+        {
+            gravity_debug_counter_ = 0;
+
+            std::ostringstream q_stream;
+            std::ostringstream tau_stream;
+            const size_t n = std::min({static_cast<size_t>(kJointCount), hw_states_pos_.size(), tau.size()});
+            for (size_t i = 0; i < n; ++i)
+            {
+                if (i > 0)
+                {
+                    q_stream << ", ";
+                    tau_stream << ", ";
+                }
+                q_stream << "J" << (i + 1) << "=" << hw_states_pos_[i];
+                tau_stream << "J" << (i + 1) << "=" << tau[i];
+            }
+
+            RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+                "[GRAVITY_DEBUG] q(rad): [%s], tau_g(Nm): [%s]",
+                q_stream.str().c_str(),
+                tau_stream.str().c_str());
+        }
     }
 }
 

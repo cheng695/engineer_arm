@@ -32,6 +32,7 @@ struct MotorState
 struct MotorConfig
 {
   uint32_t can_id    = 0;       // CAN 标识符
+  uint32_t recv_can_id = 0;     // 电机反馈 CAN 标识符
   std::string bus_name = "can0"; // 所属 CAN 总线名称
   float kp           = 0.0f;    // MIT 模式比例增益
   float kd           = 0.3f;    // MIT 模式微分增益
@@ -91,6 +92,8 @@ public:
 
   uint32_t    get_can_id()   const { return config_.can_id; }
   void        set_can_id(uint32_t id) { config_.can_id = id; }
+  uint32_t    get_recv_can_id() const { return config_.recv_can_id; }
+  void        set_recv_can_id(uint32_t id) { config_.recv_can_id = id; }
 
   std::string get_bus_name() const { return config_.bus_name; }
   void        set_bus_name(const std::string& name) { config_.bus_name = name; }

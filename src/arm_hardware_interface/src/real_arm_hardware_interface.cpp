@@ -258,6 +258,11 @@ bool RealArmHardwareInterface::init_motors()
         else { RCLCPP_ERROR(rclcpp::get_logger("ArmHW"), "未知型号 %s", model.c_str()); return false; }
 
         motor->set_can_id(id);
+        uint32_t recv_id = id;
+        auto it_recv_id = j.parameters.find("recv_can_id");
+        if (it_recv_id != j.parameters.end())
+            recv_id = static_cast<uint32_t>(std::stoul(it_recv_id->second, nullptr, 0));
+        motor->set_recv_can_id(recv_id);
         motor->set_bus_name(bus);
         motor->set_kp(kp);
         motor->set_kd(kd);
@@ -436,13 +441,13 @@ void RealArmHardwareInterface::hold_position()
 }
 
 // ================================================================
-// CAN 指令发送（含重力前馈 + 安全限幅）
+// CAN 指令发送（当前仅发送控制器输出；重力补偿先保持观测模式）
 // ================================================================
 
 void RealArmHardwareInterface::send_can_commands()
 {
     std::vector<double> grav(kJointCount, 0.0);
-    // 暂时关闭重力补偿测试
+    // 重力补偿调试阶段先不叠加到电机命令；tau_g 会在 apply_gravity_to_effort() 中打印。
     // if (gravity_compensator_.is_initialized())
     //     grav = gravity_compensator_.compute(hw_states_pos_);
 
@@ -458,14 +463,21 @@ void RealArmHardwareInterface::send_can_commands()
         if (!use_real_joint_io_[i]) continue;
         double pos = hw_commands_pos_[i];
         double vel = hw_commands_vel_[i];
+        double eff = hw_commands_eff_[i] + (i < grav.size() ? grav[i] : 0.0);
         if (i == kJ3Index && use_real_joint_io_[kJ2Index])
         {
             pos -= j2j3_coupling_ * hw_commands_pos_[kJ2Index];
             vel -= j2j3_coupling_ * hw_commands_vel_[kJ2Index];
         }
+        if (i == kJ2Index && use_real_joint_io_[kJ3Index])
+        {
+            const double j3_eff =
+                hw_commands_eff_[kJ3Index] + (kJ3Index < grav.size() ? grav[kJ3Index] : 0.0);
+            eff += j2j3_coupling_ * j3_eff;
+        }
         cmd_pos[motor_idx] = pos;
         cmd_vel[motor_idx] = vel;
-        cmd_eff[motor_idx] = hw_commands_eff_[i] + (i < grav.size() ? grav[i] : 0.0);
+        cmd_eff[motor_idx] = eff;
         motor_idx++;
     }
 

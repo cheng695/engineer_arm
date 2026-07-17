@@ -10,6 +10,10 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    robot_version = LaunchConfiguration('robot', default='v1_0')
+    arm_version = LaunchConfiguration('arm_version', default=robot_version)
+    chassis_version = LaunchConfiguration('chassis_version', default=robot_version)
+    gripper_version = LaunchConfiguration('gripper_version', default=robot_version)
     use_mock_hardware = LaunchConfiguration('use_mock_hardware', default='true')
 
     pkg_share_description = get_package_share_directory('my_robot_description')
@@ -18,6 +22,9 @@ def generate_launch_description():
     # Robot Description with use_mock_hardware flag
     robot_description_content = Command([
         'xacro ', os.path.join(pkg_share_description, 'urdf', 'my_robot.urdf.xacro'),
+        ' arm_version:=', arm_version,
+        ' chassis_version:=', chassis_version,
+        ' gripper_version:=', gripper_version,
         ' use_mock_hardware:=', use_mock_hardware
     ])
     robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
@@ -43,6 +50,26 @@ def generate_launch_description():
             'use_mock_hardware',
             default_value='true',
             description='Use mock hardware (simulation) if true'),
+
+        DeclareLaunchArgument(
+            'robot',
+            default_value='v1_0',
+            description='Robot description variant shortcut: v1_0/v1_1 or v1.0/v1.1'),
+
+        DeclareLaunchArgument(
+            'arm_version',
+            default_value=robot_version,
+            description='Arm description variant override: v1_0 or v1_1'),
+
+        DeclareLaunchArgument(
+            'chassis_version',
+            default_value=robot_version,
+            description='Chassis description variant override: v1_0 or v1_1'),
+
+        DeclareLaunchArgument(
+            'gripper_version',
+            default_value=robot_version,
+            description='Gripper description variant override: v1_0 or v1_1'),
 
         robot_state_publisher,
 

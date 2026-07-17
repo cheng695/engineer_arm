@@ -11,6 +11,7 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <array>
 #include <memory>
 #include <string>
 
@@ -36,6 +37,21 @@ public:
         // 是否启用 Servo（仿真可关闭，走纯 DLS）
         node_->declare_parameter("use_servo", true);
         use_servo_ = node_->get_parameter("use_servo").as_bool();
+        node_->declare_parameter("arm_version", "v1_0");
+        const auto arm_version = node_->get_parameter("arm_version").as_string();
+        node_->declare_parameter<std::vector<double>>(
+            "joint_control_directions", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+        const auto directions = node_->get_parameter("joint_control_directions").as_double_array();
+        if (directions.size() == joint_control_directions_.size())
+        {
+            std::copy(directions.begin(), directions.end(), joint_control_directions_.begin());
+        }
+        else
+        {
+            RCLCPP_WARN(node_->get_logger(),
+                "[JOINT] joint_control_directions size=%zu, expected 7; using all +1",
+                directions.size());
+        }
 
         command_frame_id_ = "base_link";
         dls_pub_ = node_->create_publisher<TwistStamped>("/dls/twist_cmds", 10);
@@ -96,6 +112,12 @@ public:
 
         RCLCPP_INFO(node_->get_logger(), "[BOOT] 启动完成 (DLS %s Servo)",
             use_servo_ ? "+" : "only, no");
+        RCLCPP_INFO(node_->get_logger(),
+            "[JOINT] arm_version=%s, directions=[%.0f %.0f %.0f %.0f %.0f %.0f %.0f]",
+            arm_version.c_str(),
+            joint_control_directions_[0], joint_control_directions_[1], joint_control_directions_[2],
+            joint_control_directions_[3], joint_control_directions_[4], joint_control_directions_[5],
+            joint_control_directions_[6]);
         RCLCPP_INFO(node_->get_logger(), "[MODE] 默认笛卡尔 | R3→关节 | RT→暂停");
     }
 
@@ -148,6 +170,16 @@ private:
 
     void publishJoint()
     {
+        const std::array<double, 7> joint_cmds = {
+            joint_control_directions_[0] * remote_.j1(),
+            joint_control_directions_[1] * remote_.j2(),
+            joint_control_directions_[2] * remote_.j3(),
+            joint_control_directions_[3] * remote_.j4(),
+            joint_control_directions_[4] * remote_.j5(),
+            joint_control_directions_[5] * remote_.j6(),
+            joint_control_directions_[6] * remote_.j7()
+        };
+
         if (use_servo_)
         {
             auto msg = std::make_unique<JointJog>();
@@ -156,10 +188,10 @@ private:
             auto add = [&](const std::string& n, double v) {
                 if (std::abs(v) > 0.05) { msg->joint_names.push_back(n); msg->velocities.push_back(v * 1.5); }
             };
-            add("joint1", remote_.j1()); add("joint2", remote_.j2());
-            add("joint3", remote_.j3()); add("joint4", remote_.j4());
-            add("joint5", -remote_.j5()); add("joint6", remote_.j6());
-            add("joint7", remote_.j7());
+            add("joint1", joint_cmds[0]); add("joint2", joint_cmds[1]);
+            add("joint3", joint_cmds[2]); add("joint4", joint_cmds[3]);
+            add("joint5", -joint_cmds[4]); add("joint6", joint_cmds[5]);
+            add("joint7", joint_cmds[6]);
             if (!msg->joint_names.empty()) joint_pub_->publish(std::move(msg));
         }
         else
@@ -168,8 +200,8 @@ private:
             auto msg = std::make_unique<Float64MultiArray>();
             constexpr double k = 0.5;
             msg->data = {
-                k * remote_.j1(), k * remote_.j2(), k * remote_.j3(), k * remote_.j4(),
-                k * remote_.j5(), k * remote_.j6(), k * remote_.j7()
+                k * joint_cmds[0], k * joint_cmds[1], k * joint_cmds[2], k * joint_cmds[3],
+                k * joint_cmds[4], k * joint_cmds[5], k * joint_cmds[6]
             };
             vel_pub_->publish(std::move(msg));
         }
@@ -197,6 +229,27 @@ private:
         pose_active_pub_->publish(std::move(m));
     }
 
+    void logStateValidity(const std::string& label, moveit::core::RobotState state)
+    {
+        const auto* arm_group = state.getRobotModel()->getJointModelGroup("arm");
+        const bool bounds_ok = arm_group ? state.satisfiesBounds(arm_group) : state.satisfiesBounds();
+        state.update();
+
+        bool colliding = false;
+        if (planning_scene_monitor_ && planning_scene_monitor_->getPlanningScene())
+        {
+            planning_scene_monitor::LockedPlanningSceneRO scene(planning_scene_monitor_);
+            if (scene)
+            {
+                colliding = scene->isStateColliding(state, "arm", true);
+            }
+        }
+
+        RCLCPP_WARN(node_->get_logger(),
+            "[PLAN-CHECK] %s bounds=%s collision=%s",
+            label.c_str(), bounds_ok ? "OK" : "BAD", colliding ? "YES" : "NO");
+    }
+
     void goNamedTarget(const std::string& target)
     {
         enabled_ = false;
@@ -218,10 +271,24 @@ private:
                 start_state.setVariablePositions(last_joint_state_->name, last_joint_state_->position);
                 start_state.update();
                 move_group_->setStartState(start_state);
+                logStateValidity("start", start_state);
                 RCLCPP_INFO(node_->get_logger(), "[PLAN] from J1=%.3f J2=%.3f → %s",
                     last_joint_state_->position[0], last_joint_state_->position[1], target.c_str());
             }
             else { move_group_->setStartStateToCurrentState(); }
+
+            const auto* arm_group = move_group_->getRobotModel()->getJointModelGroup("arm");
+            moveit::core::RobotState target_state(move_group_->getRobotModel());
+            target_state.setToDefaultValues();
+            if (arm_group && target_state.setToDefaultValues(arm_group, target))
+            {
+                logStateValidity("target " + target, target_state);
+            }
+            else
+            {
+                RCLCPP_ERROR(node_->get_logger(), "[PLAN-CHECK] named target '%s' not found", target.c_str());
+            }
+
             move_group_->setNamedTarget(target);
 
             // 规划轨迹
@@ -266,6 +333,7 @@ private:
 
     // Servo（可选）
     bool use_servo_ = true;
+    std::array<double, 7> joint_control_directions_ = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
     std::unique_ptr<moveit_servo::Servo> servo_;
     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor_;
     rclcpp::Publisher<TwistStamped>::SharedPtr twist_pub_;

@@ -143,8 +143,9 @@ public:
    * @brief 从所有 CAN 总线读取反馈，匹配并更新各电机状态。
    *
    * 非阻塞读取：每条总线上的所有可用帧都会被处理。
-   * 支持两种匹配方式：
-   * - 精确匹配：帧的 CAN ID == 电机的 can_id
+   * 支持三种匹配方式：
+   * - 精确匹配：帧的 CAN ID == 电机的 recv_can_id
+   * - 兼容匹配：帧的 CAN ID == 电机的 can_id
    * - 广播匹配：帧 ID == 0x00 时，从 data[0] 低 4 位提取电机 ID
    */
   void readFeedback()
@@ -161,7 +162,8 @@ public:
         {
           if (motor->get_bus_name() != bus_name) continue;
 
-          bool match = (motor->get_can_id() == id)
+          bool match = (motor->get_recv_can_id() == id)
+                    || (motor->get_can_id() == id)
                     || (id == 0x00 && (frame.data[0] & 0x0F) == static_cast<uint8_t>(motor->get_can_id()));
           if (match)
           {

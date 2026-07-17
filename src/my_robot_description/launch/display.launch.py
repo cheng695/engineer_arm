@@ -9,11 +9,20 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+    robot_version = LaunchConfiguration('robot', default='v1_0')
+    arm_version = LaunchConfiguration('arm_version', default=robot_version)
+    chassis_version = LaunchConfiguration('chassis_version', default=robot_version)
+    gripper_version = LaunchConfiguration('gripper_version', default=robot_version)
 
     pkg_share = get_package_share_directory('my_robot_description')
     xacro_file = os.path.join(pkg_share, 'urdf', 'my_robot.urdf.xacro')
 
-    robot_description = Command(['xacro ', xacro_file])
+    robot_description = Command([
+        'xacro ', xacro_file,
+        ' arm_version:=', arm_version,
+        ' chassis_version:=', chassis_version,
+        ' gripper_version:=', gripper_version,
+    ])
 
     rviz_config_dir = os.path.join(pkg_share, 'rviz', 'rviz_description.rviz')
 
@@ -22,6 +31,26 @@ def generate_launch_description():
             'use_sim_time',
             default_value='false',
             description='Use simulation (Gazebo) clock if true'),
+
+        DeclareLaunchArgument(
+            'robot',
+            default_value='v1_0',
+            description='Robot description variant shortcut: v1_0/v1_1 or v1.0/v1.1'),
+
+        DeclareLaunchArgument(
+            'arm_version',
+            default_value=robot_version,
+            description='Arm description variant override: v1_0 or v1_1'),
+
+        DeclareLaunchArgument(
+            'chassis_version',
+            default_value=robot_version,
+            description='Chassis description variant override: v1_0 or v1_1'),
+
+        DeclareLaunchArgument(
+            'gripper_version',
+            default_value=robot_version,
+            description='Gripper description variant override: v1_0 or v1_1'),
 
         Node(
             package='robot_state_publisher',

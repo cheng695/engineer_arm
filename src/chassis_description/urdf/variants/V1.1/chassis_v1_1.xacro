@@ -1,0 +1,2930 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--Chassis v1.1 generated from src/V1.1urdf/robot.urdf. base_link is provided by arm_description.-->
+  <link name="chassis_base_link" />
+  <joint name="chassis_base_to_chassis_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="chassis_base_link" />
+    <child link="chassis_link" />
+  </joint>
+  <link name="chassis_link">
+    <inertial>
+      <origin xyz="-0.057239176 -4.7925787e-05 -0.29333684" rpy="0 0 0" />
+      <mass value="16" />
+      <inertia ixx="0.51116457" iyy="0.53191836" izz="0.75322526" ixy="0.0011318408" ixz="0.10411659" iyz="0.00049518582" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_002_6061-3030-500.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_003_6061-3030-480.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_004_6061-3030-480.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_005_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_006_TB-_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_007_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_008_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_009_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_010_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_011_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_012_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_013_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_014_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_015_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_016_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_017_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_018_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_019_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_020_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_021_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_022_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_023_M2.5_-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_024_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_025_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_026_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_027_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_028_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_029_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_030_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_031_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_032_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_033_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_034_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_035_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_036_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_037_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_038_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_039_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_040_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_041_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_042_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_043_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_044_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_045_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_046_M2.5_-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_047_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_048_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_049_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_050_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_051_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_052_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_053_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_054_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_055_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_056_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_057_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_058_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_059_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_060_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_061_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_062_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_063_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_064_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_065_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_066_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_067_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_068_M2.5_-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_069_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_070_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_071_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_072_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_073_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_074_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_075_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_076_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_077_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_078_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_079_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_080_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_081_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_082_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_083_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_084_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_085_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_086_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_087_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_088_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_089_3-M2.5-30.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_090_M2.5_-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_091_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_092_-12.75-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_093_3mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_094_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_095_-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_096_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_097_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_098_TB-_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_099_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_100_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_101_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_102_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_103_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_104_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_105_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_106_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_107_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_108_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_109_5M3-55.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_110_5M3-55.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_111_-PLA-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_112_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_113_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_114_-PLA-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_115_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_116_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_117_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_118_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_119_J1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_120_dm8009p.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_121_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_122_L1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_123_6061-3030-500.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_124_RAU-7008.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_127_S5M-60.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_128_J1_-PLA-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_129_J1_2-PLA-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_131_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_132_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_133_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_134_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_135_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_136_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_137_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_138_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_139_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_140_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_141_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_142_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_143_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_144_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_145_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_146_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_147_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_148_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_149_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_150_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_151_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_152_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_153_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_154_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_155_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_156_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_157_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_158_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_159_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_160_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_161_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_162_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_163_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_164_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_165_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_166_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_167_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_168_KJ90FT33.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_169_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_170_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_171_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_172_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_173_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_174_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_175_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_176_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_177_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_178_TB-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_179_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_180_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_181_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_182_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_183_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_184_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_185_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_186_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_187_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_188_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_189_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_190_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_191_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_192_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_193_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_194_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_195_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_196_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_197_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_198_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_199_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_200_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_201_TB-_2.1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_202_TB-_2.1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_203_TB-_2.1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_204_TB-_2.1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_205_12_5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_206_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_207_5_10_4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_215_RoboMaster_FI02_2020.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_216_RFID_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_217_M4-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_218_M4-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_219_M4-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_220_M4-25.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_221_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_222_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_223_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_224_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_225_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_226_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_227_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_228_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_229_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_230_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_231_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_232_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_233_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_234_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_235_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_236_BK-PU60840-11_40_8.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_237_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_238_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_239_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_240_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_241_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_242_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_243_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_244_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_245_20mm_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_246_20mm_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_247_20mm_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_248_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_249_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_250_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_251_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_252_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_253_RoboMaster_LI01_2020_STEP.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_254_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_256_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_257_PLA-.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_258_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_259_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_260_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_261_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_262_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_263_PLA-.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_264_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_265_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_266_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_267_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_268_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_269_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_270_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_271_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_272_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_273_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_274_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_275_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_276_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_277_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_278_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_279_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_280_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_281_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_282_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_283_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_284_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_285_1-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_286_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_287_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_288_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_289_BK-PU62416-5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_290_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_291_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_292_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_293_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_294_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_295_-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_296_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_297_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_298_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_299_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_300_L1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_301_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_302_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_303_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_304_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_305_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_306_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_307_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_308_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_309_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_329_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_330_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_333_J1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_337_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_338_1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_342_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_343_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_344_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_125_J1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_255_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.380100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.600000 0.600000 0.100000" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.250000 -0.230100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.135000 0.100000 0.180000" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.250000 -0.230100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.135000 0.100000 0.180000" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.200000 0 -0.255100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.200000 0.460000 0.150000" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.050000 0 -0.283450" rpy="0 0 0" />
+      <geometry>
+        <box size="0.130000 0.190000 0.093300" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.270000 0 -0.145100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.060000 0.285000 0.070000" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.136500 0 -0.318600" rpy="0 0 0" />
+      <geometry>
+        <box size="0.120000 0.130000 0.030000" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="W1">
+    <inertial>
+      <origin xyz="-3.755e-09 -0.042449997 7.5e-09" rpy="0 0 0" />
+      <mass value="1.0305039" />
+      <inertia ixx="0.0028589117" iyy="0.0040548377" izz="0.0028589117" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.18131585 -0.24 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_363_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.18131585 -0.24 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_363_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="W2">
+    <inertial>
+      <origin xyz="3.87e-09 0.037449997 -7.7600001e-09" rpy="0 0 0" />
+      <mass value="1.0305033" />
+      <inertia ixx="0.0028615229" iyy="0.0040600613" izz="0.0028615233" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.18131585 0.235 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_364_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.18131585 0.235 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_364_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="W3">
+    <inertial>
+      <origin xyz="-3.875e-09 0.042449997 -7.755e-09" rpy="0 0 0" />
+      <mass value="1.0304899" />
+      <inertia ixx="0.0028428005" iyy="0.0040226382" izz="0.0028428009" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0.18131585 0.24 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_365_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.18131585 0.24 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_365_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="W4">
+    <inertial>
+      <origin xyz="0 -0.037449997 7.5e-09" rpy="0 0 0" />
+      <mass value="1.0305025" />
+      <inertia ixx="0.0028270807" iyy="0.0039911776" izz="0.0028270805" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0.18131585 -0.235 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_366_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.18131585 -0.235 0.40066775" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://chassis_description/meshes/v1_1/part_366_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="R1" type="fixed">
+    <origin xyz="0.18131585 0.24 -0.40066775" rpy="0 0 0" />
+    <parent link="chassis_link" />
+    <child link="W1" />
+  </joint>
+  <joint name="R2" type="fixed">
+    <origin xyz="0.18131585 -0.235 -0.40066775" rpy="0 0 0" />
+    <parent link="chassis_link" />
+    <child link="W2" />
+  </joint>
+  <joint name="R3" type="fixed">
+    <origin xyz="-0.18131585 -0.24 -0.40066775" rpy="0 0 0" />
+    <parent link="chassis_link" />
+    <child link="W3" />
+  </joint>
+  <joint name="R4" type="fixed">
+    <origin xyz="-0.18131585 0.235 -0.40066775" rpy="0 0 0" />
+    <parent link="chassis_link" />
+    <child link="W4" />
+  </joint>
+</robot>

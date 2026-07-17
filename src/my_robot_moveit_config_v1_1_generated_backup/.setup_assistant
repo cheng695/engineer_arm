@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: arm_description
+    relative_path: urdf/v1_1_full_robot.urdf
+  srdf:
+    relative_path: config/my_robot.srdf
+  package_settings:
+    author_name: whc
+    author_email: whc@qq.com
+    generated_timestamp: 1784285563

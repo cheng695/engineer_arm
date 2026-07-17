@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--Arm v1.1 joint definitions generated from src/V1.1urdf/robot.urdf. joint1 is expressed relative to formal arm base_link.-->
+  
+  <!-- ==================== J1: base_link → Link_1 ==================== -->
+  <joint name="joint1" type="revolute">
+    <origin xyz="-0.0135 0 -0.37411832" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="Link_1" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-2.3562" upper="2.3562" effort="20" velocity="2" />
+  </joint>
+
+  <!-- ==================== J2: Link_1 → Link_2 ==================== -->
+  <joint name="joint2" type="revolute">
+    <origin xyz="0 -0.035 0.1165" rpy="0 0 0" />
+    <parent link="Link_1" />
+    <child link="Link_2" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.204" upper="0.262" effort="20" velocity="2" />
+  </joint>
+
+  <!-- ==================== J3: Link_2 → Link_3 ==================== -->
+  <joint name="joint3" type="revolute">
+    <origin xyz="0 0.07285 0.35" rpy="0 0 0" />
+    <parent link="Link_2" />
+    <child link="Link3" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.9599" upper="1.221" effort="20" velocity="2" />
+  </joint>
+
+  <!-- ==================== J4: Link_3 → Link_4 ==================== -->
+  <joint name="joint4" type="revolute">
+    <origin xyz="0.232 -0.03785 -0.005" rpy="0 0 0" />
+    <parent link="Link3" />
+    <child link="Link4" />
+    <axis xyz="1 0 0" />
+    <limit lower="-2.3562" upper="2.3562" effort="9" velocity="2" />
+  </joint>
+
+  <!-- ==================== J5: Link_4 → Link_5 ==================== -->
+  <joint name="joint5" type="revolute">
+    <origin xyz="0.05 -0.0382 0" rpy="0 0 0" />
+    <parent link="Link4" />
+    <child link="Link5" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.78" upper="1.57" effort="10" velocity="5" />
+  </joint>
+
+  <!-- ==================== J6: Link_5 → Link_6 ==================== -->
+  <joint name="joint6" type="revolute">
+    <origin xyz="0.062929818 0.0382 0.0405" rpy="0 0 0" />
+    <parent link="Link5" />
+    <child link="Link6" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="5" />
+  </joint>
+
+  <!-- ==================== J7: Link_6 → Link_7 ==================== -->
+  <joint name="joint7" type="revolute">
+    <origin xyz="0.0465 0 -0.0405" rpy="0 0 0" />
+    <parent link="Link6" />
+    <child link="Link7" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="5" />
+  </joint>
+</robot>

@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Mount frame connected from Link7 by my_robot.urdf.xacro. -->
+  <link name="gripper_base_link"/>
+
+  <!-- V1.1 integrated end effector body. -->
+  <link name="end_effector_link">
+    <inertial>
+      <origin xyz="0.065 0 0.01" rpy="0 0 0"/>
+      <mass value="0.22"/>
+      <inertia ixx="0.00022" ixy="0" ixz="0"
+               iyy="0.00038" iyz="0" izz="0.00038"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.58437982 0 -0.13738168" rpy="1.5707963 0 0"/>
+      <geometry>
+        <mesh filename="package://gripper_description/meshes/v1_1/part_355_part.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.08 0.07 0.05"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint_gripper" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="gripper_base_link"/>
+    <child link="end_effector_link"/>
+  </joint>
+
+  <link name="right_finger_Link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.00002" ixy="0" ixz="0"
+               iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 0.018 0.035"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint_right_finger" type="prismatic">
+    <origin xyz="0.07 0.045 0" rpy="0 0 0"/>
+    <parent link="end_effector_link"/>
+    <child link="right_finger_Link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.04" upper="0" effort="2" velocity="2"/>
+  </joint>
+
+  <link name="left_finger_Link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.00002" ixy="0" ixz="0"
+               iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 0.018 0.035"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint_left_finger" type="prismatic">
+    <origin xyz="0.07 -0.045 0" rpy="0 0 0"/>
+    <parent link="end_effector_link"/>
+    <child link="left_finger_Link"/>
+    <axis xyz="0 1 0"/>
+    <mimic joint="joint_right_finger" multiplier="-1.0" offset="0"/>
+    <limit lower="0" upper="0.04" effort="2" velocity="2"/>
+  </joint>
+
+  <link name="link_ee"/>
+  <joint name="joint_ee" type="fixed">
+    <origin xyz="0.08 0 0" rpy="0 0 0"/>
+    <parent link="end_effector_link"/>
+    <child link="link_ee"/>
+  </joint>
+
+  <link name="tool_link"/>
+  <joint name="joint_tool" type="fixed">
+    <origin xyz="0.08 0 0" rpy="0 0 0"/>
+    <parent link="end_effector_link"/>
+    <child link="tool_link"/>
+  </joint>
+
+  <link name="gripper_center"/>
+  <joint name="joint_gripper_center" type="fixed">
+    <origin xyz="0.08 0 0" rpy="0 0 0"/>
+    <parent link="end_effector_link"/>
+    <child link="gripper_center"/>
+  </joint>
+
+</robot>

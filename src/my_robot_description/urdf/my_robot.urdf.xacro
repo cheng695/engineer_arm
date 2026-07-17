@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
 <robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Include arm description -->
-  <xacro:include filename="$(find arm_description)/urdf/arm.xacro"/>
+  <!-- Arguments -->
+  <xacro:arg name="arm_version" default="v1_0"/>
+  <xacro:arg name="chassis_version" default="v1_0"/>
+  <xacro:arg name="gripper_version" default="v1_0"/>
+  <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="gravity_compensation_mode" default="off"/>
+  <xacro:arg name="can0_interface" default="can0"/>
+  <xacro:arg name="can1_interface" default="can1"/>
+  <xacro:arg name="robot_description_file" default="/tmp/robot_description.urdf"/>
 
   <!-- Include gripper description -->
   <xacro:include filename="$(find gripper_description)/urdf/gripper.xacro"/>
@@ -10,17 +17,14 @@
   <!-- Include chassis description -->
   <xacro:include filename="$(find chassis_description)/urdf/chassis.xacro"/>
 
-  <!-- Arguments -->
-  <xacro:arg name="use_mock_hardware" default="false"/>
-  <xacro:arg name="gravity_compensation_mode" default="off"/>
-  <xacro:arg name="can0_interface" default="can0"/>
-  <xacro:arg name="can1_interface" default="can1"/>
-  <xacro:arg name="robot_description_file" default="/tmp/robot_description.urdf"/>
+  <!-- Include arm description after arm_version is declared. -->
+  <xacro:include filename="$(find arm_description)/urdf/arm.xacro"/>
 
   <!-- Include ros2_control configuration -->
   <xacro:include filename="$(find arm_description)/urdf/arm.ros2_control.xacro"/>
   <xacro:arm_ros2_control
     name="ArmControl"
+    arm_version="$(arg arm_version)"
     use_mock_hardware="$(arg use_mock_hardware)"
     gravity_compensation_mode="$(arg gravity_compensation_mode)"
     can0_interface="$(arg can0_interface)"
@@ -34,12 +38,23 @@
     <child link="base_link"/>
   </joint>
   
-  <!-- Connect gripper to arm: gripper_base_link attached to tool_link -->
-  <joint name="gripper_base_joint" type="fixed">
-    <parent link="tool_link"/>
-    <child link="gripper_base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
+  <!-- V1.0 gripper is attached to the arm-provided tool_link. -->
+  <xacro:if value="$(eval gripper_version == 'v1_0' or gripper_version == 'v1.0' or gripper_version == '1.0' or gripper_version == 1.0)">
+    <joint name="gripper_base_joint" type="fixed">
+      <parent link="tool_link"/>
+      <child link="gripper_base_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+
+  <!-- V1.1 gripper owns the end effector and tool frame. -->
+  <xacro:if value="$(eval gripper_version == 'v1_1' or gripper_version == 'v1.1' or gripper_version == '1.1' or gripper_version == 1.1)">
+    <joint name="gripper_base_joint" type="fixed">
+      <parent link="Link7"/>
+      <child link="gripper_base_link"/>
+      <origin xyz="0.056450 0 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
 
   <!-- Future: include chassis_description connection here -->
 

@@ -1,0 +1,590 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--Arm v1.1 link definitions generated from src/V1.1urdf/robot.urdf.-->
+  
+  <!-- ==================== base_link ==================== -->
+  <link name="base_link" />
+
+  <!-- ==================== Link_1 ==================== -->
+  <link name="Link_1">
+    <inertial>
+      <origin xyz="-0.0020636101 -0.0057162841 0.11233073" rpy="0 0 0" />
+      <mass value="2.45" />
+      <inertia ixx="0.014719787" iyy="0.0053185081" izz="0.014462164" ixy="0.0004820444" ixz="-0.0001006063" iyz="0.00027396979" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_126_J2_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_310_J2_2_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_336_TPU_J2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_339_TPU_J2-2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_345_8009_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_346_8009_-PLA.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_356_DM8009.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_357_DM8009.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_001_L1_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0 0.32411832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_332_20mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.010497 0 0.104100" rpy="0 0 0" />
+      <geometry>
+        <box size="0.104994 0.195400 0.125200" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link_2 ==================== -->
+  <link name="Link_2">
+    <inertial>
+      <origin xyz="7.0656383e-05 0.033512201 0.16136654" rpy="0 0 0" />
+      <mass value="0.6" />
+      <inertia ixx="0.010536303" iyy="0.010187293" izz="0.001159062" ixy="-1.8789344e-06" ixz="2.0572793e-06" iyz="-0.00026834023" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_312_L2_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_313_L2_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_316_RAU4005CC0-P5_40mm-51mm-5mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_331_L2_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_335_L2_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_341_J3_-TPU-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_334_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_314_RAU4005CC0-P5_40mm-51mm-5mm.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_311_J3_32.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 0.035 0.20761832" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_340_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0.036500 0.174789" rpy="0 0 0" />
+      <geometry>
+        <box size="0.094000 0.095000 0.439578" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link_3 ==================== -->
+  <link name="Link3">
+    <inertial>
+      <origin xyz="0.12698397 -0.037901086 0.0004782238" rpy="0 0 0" />
+      <mass value="0.76" />
+      <inertia ixx="0.00099793466" iyy="0.0056918507" izz="0.0060983712" ixy="-9.2773162e-05" ixz="8.3624466e-05" iyz="-7.1787262e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_208_J4_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_209_L4_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_210_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_211_J5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_212_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_213_6_21.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_214_J4_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_321_J5.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_322_J5-6709DDU-_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_362_DM4340.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_318_J3_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_315_J3_32.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_319_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_317_25-32-4MM_F6705ZZ.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.1365 -0.03785 -0.14238168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_320_J3_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.109111 -0.037850 0.001500" rpy="0 0 0" />
+      <geometry>
+        <box size="0.281777 0.108000 0.083000" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link4 ==================== -->
+  <link name="Link4">
+    <inertial>
+      <origin xyz="0.041597721 0.00044723815 -2.2688163e-05" rpy="0 0 0" />
+      <mass value="0.47" />
+      <inertia ixx="0.00029223296" iyy="0.00042469112" izz="0.00046533371" ixy="-2.9572336e-06" ixz="9.8362271e-08" iyz="8.6736506e-08" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_324_J5_-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_325_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_326_J5_2-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_327_17-23-4.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_328_J5---JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_361_DM4340.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.3685 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_323_J5-JZ2.0.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.055625 -0.001600 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.055750 0.063200 0.070000" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link5 ==================== -->
+  <link name="Link5">
+    <inertial>
+      <origin xyz="0.056336521 0.038289813 0.05700863" rpy="0 0 0" />
+      <mass value="0.46" />
+      <inertia ixx="0.0003822423" iyy="0.0004643975" izz="0.00042863745" ixy="1.9798608e-06" ixz="-0.00010815109" iyz="1.9272549e-06" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.4185 0.0382 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_350_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.4185 0.0382 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_352_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.4185 0.0382 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_359_DM4310.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.4185 0.0382 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_354_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.066883 0.038200 0.080585" rpy="0 0 0" />
+      <geometry>
+        <box size="0.065093 0.066000 0.063730" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link6 ==================== -->
+  <link name="Link6">
+    <inertial>
+      <origin xyz="0.012828514 -0.00025828564 -0.039203919" rpy="0 0 0" />
+      <mass value="0.31" />
+      <inertia ixx="0.00018042936" iyy="0.00017427384" izz="0.00015957858" ixy="1.5667644e-07" ixz="5.2546096e-06" iyz="-1.2375059e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.48142982 0 -0.17788168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_351_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.48142982 0 -0.17788168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_353_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.48142982 0 -0.17788168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_360_DM4310.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.48142982 0 -0.17788168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_349_part.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.036500 0 -0.035500" rpy="0 0 0" />
+      <geometry>
+        <box size="0.028000 0.051999 0.082000" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== Link7 ==================== -->
+  <link name="Link7">
+    <inertial>
+      <origin xyz="0.020000 0 0" rpy="0 0 0" />
+      <mass value="0.18" />
+      <inertia ixx="0.000120000" iyy="0.000120000" izz="0.000120000" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.52792982 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_348_-2.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.52792982 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_358_DM4310.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.52792982 0 -0.13738168" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/v1_1/part_347_-1.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="v1_1_default">
+        <color rgba="0.75 0.75 0.75 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.020000 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.070000 0.070000 0.070000" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

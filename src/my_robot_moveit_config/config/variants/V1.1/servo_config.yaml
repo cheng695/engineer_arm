@@ -1,0 +1,49 @@
+# MoveIt Servo 配置 —— 摇杆遥操作
+moveit_servo:
+  ros__parameters:
+    move_group_name: arm
+    planning_frame: base_link
+    ee_frame_name: gripper_center
+    robot_link_command_frame: gripper_center
+
+    # speed_units: 输入直接为速度值 (rad/s 关节, m/s 线速度, rad/s 角速度)
+    command_in_type: speed_units
+
+    publish_period: 0.01          # 100 Hz
+    low_latency_mode: true
+
+    # 输出到 arm_controller 的 topic 接口
+    command_out_topic: /arm_controller/joint_trajectory
+    command_out_type: trajectory_msgs/JointTrajectory
+
+    publish_joint_positions: true
+    publish_joint_velocities: true
+    publish_joint_accelerations: false
+
+    # 平滑
+    smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
+    butterworth_filter_coeff: 1.01
+
+    # 速度限制 (unitless 模式下生效)
+    scale:
+      linear: 0.5       # m/s
+      rotational: 2.0   # rad/s
+      joint: 3.0        # rad/s
+
+    # 碰撞检测
+    check_collisions: true
+    collision_check_rate: 10.0
+    self_collision_proximity_threshold: 0.01
+    scene_collision_proximity_threshold: 0.02
+
+    # 奇异点（阈值对齐 OpenArm）
+    lower_singularity_threshold: 17.0
+    hard_stop_singularity_threshold: 200.0
+    leaving_singularity_threshold_multiplier: 2.0
+
+    incoming_command_timeout: 0.1
+
+    # 输入话题
+    cartesian_command_in_topic: /servo/delta_twist_cmds
+    joint_command_in_topic: /servo/delta_joint_cmds
+    joint_topic: /joint_states

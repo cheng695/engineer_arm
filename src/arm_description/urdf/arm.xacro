@@ -3,19 +3,30 @@
   Arm Description — 7-DOF 机械臂 URDF 入口文件
 
   子文件结构（对标 OpenArm 的模块化组织）：
-    arm_links.xacro   — 全部 link 定义（惯量、视觉、碰撞）
-    arm_joints.xacro  — 全部 joint 定义（限位、运动学）
+    variants/V1.0/arm_links_v1_0.xacro   — v1.0 link 定义（惯量、视觉、碰撞）
+    variants/V1.0/arm_joints_v1_0.xacro  — v1.0 joint 定义（限位、运动学）
+    variants/V1.1/arm_links_v1_1.xacro   — v1.1 link 定义
+    variants/V1.1/arm_joints_v1_1.xacro  — v1.1 joint 定义
     arm.ros2_control.xacro  — ros2_control 硬件接口与控制器参数
 
   用法：
-    xacro arm.xacro
+    xacro arm.xacro arm_version:=v1_0
+    xacro arm.xacro arm_version:=v1_1
 -->
 <robot name="arm" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Links -->
-  <xacro:include filename="$(find arm_description)/urdf/arm_links.xacro"/>
+  <xacro:arg name="arm_version" default="v1_0"/>
 
-  <!-- Joints -->
-  <xacro:include filename="$(find arm_description)/urdf/arm_joints.xacro"/>
+  <!-- v1.0: current production geometry/dynamics. Accept "1.0" as an alias. -->
+  <xacro:if value="$(eval arm_version == 'v1_0' or arm_version == 'v1.0' or arm_version == '1.0' or arm_version == 1.0)">
+    <xacro:include filename="$(find arm_description)/urdf/variants/V1.0/arm_links_v1_0.xacro"/>
+    <xacro:include filename="$(find arm_description)/urdf/variants/V1.0/arm_joints_v1_0.xacro"/>
+  </xacro:if>
+
+  <!-- v1.1: prepared variant. Files currently mirror v1.0 until the new J5-J7 model is added. -->
+  <xacro:if value="$(eval arm_version == 'v1_1' or arm_version == 'v1.1' or arm_version == '1.1' or arm_version == 1.1)">
+    <xacro:include filename="$(find arm_description)/urdf/variants/V1.1/arm_links_v1_1.xacro"/>
+    <xacro:include filename="$(find arm_description)/urdf/variants/V1.1/arm_joints_v1_1.xacro"/>
+  </xacro:if>
 
 </robot>
