@@ -172,6 +172,21 @@ DlsController::Update(const std::array<double, 6>& target,
     if (hi <  1e10) pos_tar_[idx] = std::min(pos_tar_[idx], hi);
   }
 
+  // ---- 11. 缓存最近一次 DLS 诊断，供 ROS debug topic 发布 ----
+  last_diagnostics_.target_positions.assign(n_joints_, 0.0);
+  last_diagnostics_.target_velocities.assign(n_joints_, 0.0);
+  last_diagnostics_.feedback_positions.assign(n_joints_, 0.0);
+  last_diagnostics_.feedback_velocities.assign(n_joints_, 0.0);
+  for (size_t i = 0; i < n_joints_; ++i)
+  {
+    int idx = vel_offset_ + static_cast<int>(i);
+    last_diagnostics_.target_positions[i] = pos_tar_[idx];
+    last_diagnostics_.target_velocities[i] = qd_tar[idx];
+    last_diagnostics_.feedback_positions[i] = q_full[idx];
+    last_diagnostics_.feedback_velocities[i] = (i < vel_ref.size()) ? vel_ref[i] : 0.0;
+  }
+  last_diagnostics_.valid = true;
+
   // ---- 11. 诊断（每 50 周期 ≈ 10Hz） ----
   //
   // 奇异指标判断标准：

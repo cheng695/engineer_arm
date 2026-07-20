@@ -82,6 +82,8 @@ public:
     state_.velocity_Rad = uint_to_float(v_int, params_.V_MIN, params_.V_MAX, 12);
     state_.torque_Nm    = uint_to_float(t_int, params_.T_MIN, params_.T_MAX, 12);
     state_.temperature_C = static_cast<double>(data[6]);
+    ++state_.feedback_count;
+    is_enabled_ = (state_.error_code == 1);
   }
 
   /** @brief 使能命令帧（DaMiao MIT 模式：0xFFFFFFFC） */

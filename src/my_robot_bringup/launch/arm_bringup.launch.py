@@ -24,6 +24,7 @@ def generate_launch_description():
     gripper_version = LaunchConfiguration("gripper_version", default=robot_version)
     use_mock_hardware = LaunchConfiguration("use_mock_hardware", default="false")
     gravity_compensation_mode = LaunchConfiguration("gravity_compensation_mode", default="off")
+    gravity_effort_scale = LaunchConfiguration("gravity_effort_scale", default="0.0")
     active_real_joints = LaunchConfiguration("active_real_joints", default="")
     can0_interface = LaunchConfiguration("can0_interface", default="can0")
     can1_interface = LaunchConfiguration("can1_interface", default="can1")
@@ -43,6 +44,7 @@ def generate_launch_description():
             f"gripper_version:={gripper_version.perform(context)}",
             f"use_mock_hardware:={use_mock_hardware.perform(context)}",
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
+            f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
             f"can1_interface:={can1_interface.perform(context)}",
@@ -64,6 +66,7 @@ def generate_launch_description():
             " gripper_version:=", gripper_version,
             " use_mock_hardware:=", use_mock_hardware,
             " gravity_compensation_mode:=", gravity_compensation_mode,
+            " gravity_effort_scale:=", gravity_effort_scale,
             " active_real_joints:=", active_real_joints,
             " can0_interface:=", can0_interface,
             " can1_interface:=", can1_interface,
@@ -155,6 +158,8 @@ def generate_launch_description():
             description="Gripper description variant override: v1_0 or v1_1"),
         DeclareLaunchArgument("gravity_compensation_mode", default_value="off",
             description="Gravity compensation mode: off, assist, gravity_only"),
+        DeclareLaunchArgument("gravity_effort_scale", default_value="0.0",
+            description="Gravity compensation effort scale"),
         DeclareLaunchArgument("active_real_joints", default_value="",
             description="Comma-separated list of joint names using real CAN I/O"),
         DeclareLaunchArgument("can0_interface", default_value="can0",

@@ -8,6 +8,7 @@
 
 #include "hardware_interface/hardware_info.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
@@ -67,6 +68,11 @@ protected:
     /// 停止 spin 线程并释放资源
     void teardown_internal_node();
 
+    /// 发布 Foxglove 可直接绘图的调试关节状态
+    void publish_feedback_debug(const hardware_interface::HardwareInfo& info, bool publish_raw);
+    void publish_dls_debug(const hardware_interface::HardwareInfo& info);
+    void publish_joint_debug(const hardware_interface::HardwareInfo& info);
+
     // ================================================================
     // read / write 辅助
     // ================================================================
@@ -99,6 +105,10 @@ protected:
     std::vector<double> hw_states_pos_;
     std::vector<double> hw_states_vel_;
     std::vector<double> hw_states_eff_;
+    std::vector<double> raw_motor_pos_;
+    std::vector<double> raw_motor_vel_;
+    std::vector<double> raw_motor_eff_;
+    std::vector<double> gravity_motor_eff_;
     std::vector<double> hw_commands_pos_;
     std::vector<double> hw_commands_vel_;
     std::vector<double> hw_commands_eff_;
@@ -167,8 +177,18 @@ protected:
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr joint_vel_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr joint_pos_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pose_sub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr raw_motor_state_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr processed_joint_state_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr gravity_motor_effort_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr dls_target_state_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr dls_tracking_error_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_target_state_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_tracking_error_pub_;
     rclcpp::executors::SingleThreadedExecutor::SharedPtr spin_executor_;
     std::unique_ptr<std::thread> spin_thread_;
+    int feedback_debug_publish_counter_{0};
+    int dls_debug_publish_counter_{0};
+    int joint_debug_publish_counter_{0};
 };
 
 }  // namespace arm_hardware_interface

@@ -2,6 +2,7 @@
 #define ARM_CAN_DAMIAO_MOTOR_MOTOR_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ struct MotorState
   double last_angle   = 0.0;   // 上一周期角度 (用于多圈累积)
   double add_angle    = 0.0;   // 累积角度
   uint8_t error_code  = 0;     // 错误码
+  size_t feedback_count = 0;   // 收到的反馈帧数量
 };
 
 /**
@@ -111,6 +113,7 @@ public:
   double  get_velocity_rad() const { return state_.velocity_Rad; }
   double  get_torque_nm()    const { return state_.torque_Nm; }
   uint8_t get_error_code()   const { return state_.error_code; }
+  size_t  get_feedback_count() const { return state_.feedback_count; }
 };
 
 }  // namespace arm_can::damiao_motor

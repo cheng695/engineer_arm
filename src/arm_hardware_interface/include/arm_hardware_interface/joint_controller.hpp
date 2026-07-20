@@ -29,6 +29,15 @@ public:
     double eff;   // 力矩，恒为 0
   };
 
+  struct Diagnostics
+  {
+    std::vector<double> target_positions;
+    std::vector<double> target_velocities;
+    std::vector<double> feedback_positions;
+    std::vector<double> feedback_velocities;
+    bool valid = false;
+  };
+
   JointController() = default;
 
   /**
@@ -57,12 +66,15 @@ public:
                               const std::vector<double>& joint_lower,
                               const std::vector<double>& joint_upper);
 
+  const Diagnostics& LastDiagnostics() const { return last_diagnostics_; }
+
 private:
   size_t n_joints_ = 0;
   double dt_ = 0.002;
 
   Eigen::VectorXd vel_last_;   // 上一帧速度，用于加速度限制
   Eigen::VectorXd pos_tar_;    // 积分得到的目标位置
+  Diagnostics last_diagnostics_;
 };
 
 }  // namespace arm_hardware_interface

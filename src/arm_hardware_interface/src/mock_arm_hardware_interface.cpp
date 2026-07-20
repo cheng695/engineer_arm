@@ -92,6 +92,7 @@ hardware_interface::return_type MockArmHardwareInterface::read(
         hw_states_eff_[i] = 0.0;
     }
     apply_gravity_to_effort();
+    publish_feedback_debug(info_, false);
     return hardware_interface::return_type::OK;
 }
 

@@ -7,6 +7,8 @@
   <xacro:arg name="gripper_version" default="v1_0"/>
   <xacro:arg name="use_mock_hardware" default="false"/>
   <xacro:arg name="gravity_compensation_mode" default="off"/>
+  <xacro:arg name="gravity_effort_scale" default="0.0"/>
+  <xacro:arg name="active_real_joints" default=""/>
   <xacro:arg name="can0_interface" default="can0"/>
   <xacro:arg name="can1_interface" default="can1"/>
   <xacro:arg name="robot_description_file" default="/tmp/robot_description.urdf"/>
@@ -27,6 +29,8 @@
     arm_version="$(arg arm_version)"
     use_mock_hardware="$(arg use_mock_hardware)"
     gravity_compensation_mode="$(arg gravity_compensation_mode)"
+    gravity_effort_scale="$(arg gravity_effort_scale)"
+    active_real_joints="$(arg active_real_joints)"
     can0_interface="$(arg can0_interface)"
     can1_interface="$(arg can1_interface)"
     robot_description_file="$(arg robot_description_file)"/>

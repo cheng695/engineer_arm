@@ -197,6 +197,20 @@ public:
                     const std::vector<double>& velocities,
                     const std::vector<double>& efforts)
   {
+    sendCommandsWithGains(positions, velocities, efforts, {}, {});
+  }
+
+  /**
+   * @brief 向所有电机发送 MIT 控制命令，并允许逐电机覆盖 Kp/Kd。
+   *
+   * kps/kds 为空或长度不足时，对应电机继续使用预配置的 kp/kd。
+   */
+  void sendCommandsWithGains(const std::vector<double>& positions,
+                             const std::vector<double>& velocities,
+                             const std::vector<double>& efforts,
+                             const std::vector<double>& kps,
+                             const std::vector<double>& kds)
+  {
     // 按总线分组电机索引
     std::map<std::string, std::vector<size_t>> groups;
     for (size_t i = 0; i < motors_.size(); ++i)
@@ -221,8 +235,8 @@ public:
         motor->pack_mit_command(
             static_cast<float>(positions[idx] * dir),
             static_cast<float>(velocities[idx] * dir),
-            motor->get_kp(),
-            motor->get_kd(),
+            static_cast<float>(idx < kps.size() ? kps[idx] : motor->get_kp()),
+            static_cast<float>(idx < kds.size() ? kds[idx] : motor->get_kd()),
             static_cast<float>(efforts[idx]),
             data);
 

@@ -61,12 +61,18 @@ private:
     // ---- 初始化 ----
     bool init_motors();
     void sync_control_gains();
+    void sync_gravity_parameters();
 
     // ---- CAN 通信 ----
     void read_can_feedback();
     void send_can_commands();
     void refresh_feedback_before_enable();
     void sync_control_targets_to_feedback();
+    bool clear_errors_enable_and_wait();
+    bool all_real_motors_feedback_ok(
+        const std::vector<size_t>& feedback_counts_before,
+        std::string* detail = nullptr) const;
+    std::vector<size_t> real_motor_feedback_counts() const;
 
     // ---- 电机控制 ----
     void process_motor_requests();
@@ -76,6 +82,7 @@ private:
 
     // ---- CAN 电机集合 ----
     arm_can::damiao_motor::DMDeviceCollection device_collection_;
+    double gravity_effort_scale_{0.0};
 };
 
 }  // namespace arm_hardware_interface

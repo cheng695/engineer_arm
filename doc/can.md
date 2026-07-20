@@ -27,3 +27,5 @@ pkill -9 -f commander; pkill -9 -f joy_node; pkill -9 -f ros2_comtrol; pkill -9 
 
 source install/setup.bash
 ros2 launch my_robot_description display.launch.py robot:=v1.1
+
+ros2 launch my_robot_bringup robot.launch.py   use_mock_hardware:=false   robot:=v1.1   active_real_joints:=joint1,joint2,joint3,joint4   gravity_compensation_mode:=gravity_only   gravity_effort_scale:=0.85

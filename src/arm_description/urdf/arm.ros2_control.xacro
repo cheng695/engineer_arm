@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false gravity_compensation_mode:=off active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
+  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false gravity_compensation_mode:=off gravity_effort_scale:=0.0 active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
     <xacro:property name="is_arm_v1_1" value="${arm_version == 'v1_1' or arm_version == 'v1.1' or arm_version == '1.1' or arm_version == 1.1}"/>
     <ros2_control name="${name}" type="system">
       <hardware>
@@ -13,6 +13,7 @@
         </xacro:unless>
         <param name="robot_description">${robot_description_file}</param>
         <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
+        <param name="gravity_effort_scale">${gravity_effort_scale}</param>
         <param name="active_real_joints">${active_real_joints}</param>
         <param name="j2j3_coupling">0.986</param>
       </hardware>
@@ -46,7 +47,7 @@
         <param name="can_id">2</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">120.0</param>
+        <param name="kp">240.0</param>
         <param name="kd">3.0</param>
         <param name="lower_limit">${-0.262 if is_arm_v1_1 else -0.262}</param>
         <param name="upper_limit">${1.204 if is_arm_v1_1 else 1.134}</param>
@@ -62,7 +63,7 @@
         <param name="can_id">3</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">120.0</param>
+        <param name="kp">240.0</param>
         <param name="kd">3.0</param>
         <param name="lower_limit">-0.9599</param>
         <param name="upper_limit">${1.221 if is_arm_v1_1 else 0.9599}</param>

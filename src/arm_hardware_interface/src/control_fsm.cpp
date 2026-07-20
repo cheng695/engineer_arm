@@ -76,11 +76,19 @@ bool ControlFsm::update(bool twist_active, bool joint_active)
       break;
 
     case State::DLS:
-      if (!twist_active) { setState(State::IDLE); twist_pending_ = false; }
+      if (joint_active)
+      {
+        setState(State::JOINT);
+        twist_pending_ = false;
+      }
       break;
 
     case State::JOINT:
-      if (!joint_active) { setState(State::IDLE); joint_pending_ = false; }
+      if (twist_active)
+      {
+        setState(State::DLS);
+        joint_pending_ = false;
+      }
       break;
 
     case State::POSE:

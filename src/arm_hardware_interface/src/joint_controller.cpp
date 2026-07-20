@@ -77,6 +77,20 @@ JointController::Update(const std::vector<double>& vel_target,
   }
 
   // ---- 5. 诊断 ----
+  last_diagnostics_.target_positions.assign(n_joints_, 0.0);
+  last_diagnostics_.target_velocities.assign(n_joints_, 0.0);
+  last_diagnostics_.feedback_positions.assign(n_joints_, 0.0);
+  last_diagnostics_.feedback_velocities.assign(n_joints_, 0.0);
+  for (size_t i = 0; i < n_joints_; ++i)
+  {
+    last_diagnostics_.target_positions[i] = pos_tar_[i];
+    last_diagnostics_.target_velocities[i] = qd_tar[i];
+    last_diagnostics_.feedback_positions[i] = q_ref[i];
+    last_diagnostics_.feedback_velocities[i] = 0.0;
+  }
+  last_diagnostics_.valid = true;
+
+  // ---- 5. 诊断日志 ----
   static int diag_n = 0;
   if (++diag_n % 50 == 0) 
   {

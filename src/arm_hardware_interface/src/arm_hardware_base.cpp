@@ -26,6 +26,10 @@ void ArmHardwareBase::init_joint_buffers(const hardware_interface::HardwareInfo&
     hw_states_pos_.resize(n, 0.0);
     hw_states_vel_.resize(n, 0.0);
     hw_states_eff_.resize(n, 0.0);
+    raw_motor_pos_.resize(n, 0.0);
+    raw_motor_vel_.resize(n, 0.0);
+    raw_motor_eff_.resize(n, 0.0);
+    gravity_motor_eff_.resize(n, 0.0);
     hw_commands_pos_.resize(n, 0.0);
     hw_commands_vel_.resize(n, 0.0);
     hw_commands_eff_.resize(n, 0.0);
@@ -72,10 +76,26 @@ bool ArmHardwareBase::init_gravity_compensator(const hardware_interface::Hardwar
     const auto& value = it->second;
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "robot_description (%zu 字符)", value.size());
 
+    bool ok = false;
     if (value.size() < 500 && (value[0] == '/' || value.find(".urdf") != std::string::npos))
-        return gravity_compensator_.initialize_from_file(value, rclcpp::get_logger("ArmHW"));
+        ok = gravity_compensator_.initialize_from_file(value, rclcpp::get_logger("ArmHW"));
     else
-        return gravity_compensator_.initialize(value, rclcpp::get_logger("ArmHW"));
+        ok = gravity_compensator_.initialize(value, rclcpp::get_logger("ArmHW"));
+
+    if (!ok)
+        return false;
+
+    auto mode_it = info.hardware_parameters.find("gravity_compensation_mode");
+    const std::string mode = mode_it != info.hardware_parameters.end() ? mode_it->second : "off";
+    if (mode == "assist")
+        gravity_compensator_.set_mode(GravityCompensator::Mode::Assist);
+    else if (mode == "gravity_only")
+        gravity_compensator_.set_mode(GravityCompensator::Mode::GravityOnly);
+    else
+        gravity_compensator_.set_mode(GravityCompensator::Mode::Off);
+
+    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[GRAVITY] mode=%s", mode.c_str());
+    return true;
 }
 
 void ArmHardwareBase::init_dls()
@@ -155,6 +175,21 @@ void ArmHardwareBase::setup_internal_node(const std::string& node_name)
             if (m->data) fsm_.onPoseStart(); else fsm_.onPoseDone();
         });
 
+    raw_motor_state_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/raw_motor_states", 10);
+    processed_joint_state_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/processed_joint_states", 10);
+    gravity_motor_effort_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/gravity_motor_effort_states", 10);
+    dls_target_state_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/dls_target_states", 10);
+    dls_tracking_error_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/dls_tracking_error", 10);
+    joint_target_state_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/joint_target_states", 10);
+    joint_tracking_error_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/joint_tracking_error", 10);
+
     motors_enabled_ = false;
     safe_zero_frames_ = 0;
 
@@ -177,6 +212,159 @@ void ArmHardwareBase::teardown_internal_node()
         spin_thread_.reset();
     }
     spin_executor_.reset();
+}
+
+void ArmHardwareBase::publish_feedback_debug(
+    const hardware_interface::HardwareInfo& info, bool publish_raw)
+{
+    if (!internal_node_)
+        return;
+
+    static constexpr int kPublishEveryCycles = 10;  // 50Hz @ 500Hz control loop
+    if (++feedback_debug_publish_counter_ % kPublishEveryCycles != 0)
+        return;
+
+    auto fill_names = [&info](sensor_msgs::msg::JointState& msg)
+    {
+        msg.name.reserve(info.joints.size());
+        for (const auto& joint : info.joints)
+            msg.name.push_back(joint.name);
+    };
+
+    const auto stamp = internal_node_->now();
+
+    if (publish_raw && raw_motor_state_pub_)
+    {
+        sensor_msgs::msg::JointState raw;
+        raw.header.stamp = stamp;
+        fill_names(raw);
+        raw.position = raw_motor_pos_;
+        raw.velocity = raw_motor_vel_;
+        raw.effort = raw_motor_eff_;
+        raw_motor_state_pub_->publish(raw);
+    }
+
+    if (processed_joint_state_pub_)
+    {
+        sensor_msgs::msg::JointState processed;
+        processed.header.stamp = stamp;
+        fill_names(processed);
+        processed.position = hw_states_pos_;
+        processed.velocity = hw_states_vel_;
+        processed.effort = hw_states_eff_;
+        processed_joint_state_pub_->publish(processed);
+    }
+
+    if (gravity_motor_effort_pub_)
+    {
+        sensor_msgs::msg::JointState motor_gravity;
+        motor_gravity.header.stamp = stamp;
+        fill_names(motor_gravity);
+        motor_gravity.effort = gravity_motor_eff_;
+        gravity_motor_effort_pub_->publish(motor_gravity);
+    }
+}
+
+void ArmHardwareBase::publish_dls_debug(const hardware_interface::HardwareInfo& info)
+{
+    if (!internal_node_)
+        return;
+
+    const auto& diag = dls_controller_.LastDiagnostics();
+    if (!diag.valid)
+        return;
+
+    static constexpr int kPublishEveryCycles = 10;  // 50Hz @ 500Hz control loop
+    if (++dls_debug_publish_counter_ % kPublishEveryCycles != 0)
+        return;
+
+    auto fill_arm_joint_names = [&info](sensor_msgs::msg::JointState& msg)
+    {
+        const size_t n = std::min(static_cast<size_t>(kJointCount), info.joints.size());
+        msg.name.reserve(n);
+        for (size_t i = 0; i < n; ++i)
+            msg.name.push_back(info.joints[i].name);
+    };
+
+    const auto stamp = internal_node_->now();
+
+    if (dls_target_state_pub_)
+    {
+        sensor_msgs::msg::JointState target;
+        target.header.stamp = stamp;
+        fill_arm_joint_names(target);
+        target.position = diag.target_positions;
+        target.velocity = diag.target_velocities;
+        dls_target_state_pub_->publish(target);
+    }
+
+    if (dls_tracking_error_pub_)
+    {
+        sensor_msgs::msg::JointState error;
+        error.header.stamp = stamp;
+        fill_arm_joint_names(error);
+        error.position.resize(diag.target_positions.size(), 0.0);
+        error.velocity.resize(diag.target_velocities.size(), 0.0);
+        for (size_t i = 0; i < diag.target_positions.size(); ++i)
+        {
+            const double feedback_pos = (i < diag.feedback_positions.size()) ? diag.feedback_positions[i] : 0.0;
+            const double feedback_vel = (i < diag.feedback_velocities.size()) ? diag.feedback_velocities[i] : 0.0;
+            error.position[i] = feedback_pos - diag.target_positions[i];
+            error.velocity[i] = feedback_vel - diag.target_velocities[i];
+        }
+        dls_tracking_error_pub_->publish(error);
+    }
+}
+
+void ArmHardwareBase::publish_joint_debug(const hardware_interface::HardwareInfo& info)
+{
+    if (!internal_node_)
+        return;
+
+    const auto& diag = joint_controller_.LastDiagnostics();
+    if (!diag.valid)
+        return;
+
+    static constexpr int kPublishEveryCycles = 10;  // 50Hz @ 500Hz control loop
+    if (++joint_debug_publish_counter_ % kPublishEveryCycles != 0)
+        return;
+
+    auto fill_arm_joint_names = [&info](sensor_msgs::msg::JointState& msg)
+    {
+        const size_t n = std::min(static_cast<size_t>(kJointCount), info.joints.size());
+        msg.name.reserve(n);
+        for (size_t i = 0; i < n; ++i)
+            msg.name.push_back(info.joints[i].name);
+    };
+
+    const auto stamp = internal_node_->now();
+
+    if (joint_target_state_pub_)
+    {
+        sensor_msgs::msg::JointState target;
+        target.header.stamp = stamp;
+        fill_arm_joint_names(target);
+        target.position = diag.target_positions;
+        target.velocity = diag.target_velocities;
+        joint_target_state_pub_->publish(target);
+    }
+
+    if (joint_tracking_error_pub_)
+    {
+        sensor_msgs::msg::JointState error;
+        error.header.stamp = stamp;
+        fill_arm_joint_names(error);
+        error.position.resize(diag.target_positions.size(), 0.0);
+        error.velocity.resize(diag.target_velocities.size(), 0.0);
+        for (size_t i = 0; i < diag.target_positions.size(); ++i)
+        {
+            const double feedback_pos = (i < diag.feedback_positions.size()) ? diag.feedback_positions[i] : 0.0;
+            const double feedback_vel = (i < diag.feedback_velocities.size()) ? diag.feedback_velocities[i] : 0.0;
+            error.position[i] = feedback_pos - diag.target_positions[i];
+            error.velocity[i] = feedback_vel - diag.target_velocities[i];
+        }
+        joint_tracking_error_pub_->publish(error);
+    }
 }
 
 // ================================================================
@@ -218,6 +406,17 @@ void ArmHardwareBase::apply_gravity_to_effort()
         auto tau = gravity_compensator_.compute(hw_states_pos_);
         for (size_t i = 0; i < std::min(tau.size(), hw_states_eff_.size()); ++i)
             hw_states_eff_[i] = tau[i];
+
+        std::fill(gravity_motor_eff_.begin(), gravity_motor_eff_.end(), 0.0);
+        for (size_t i = 0; i < std::min(tau.size(), gravity_motor_eff_.size()); ++i)
+            gravity_motor_eff_[i] = tau[i];
+        if (kJ2Index < gravity_motor_eff_.size() &&
+            kJ3Index < tau.size() &&
+            use_real_joint_io_[kJ2Index] &&
+            use_real_joint_io_[kJ3Index])
+        {
+            gravity_motor_eff_[kJ2Index] += j2j3_coupling_ * tau[kJ3Index];
+        }
 
         // 调试阶段：只观察 Pinocchio 计算出的重力力矩，不在 send_can_commands() 中叠加到电机命令。
         if (++gravity_debug_counter_ >= 250)
@@ -330,7 +529,8 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
     {
         RCLCPP_INFO_ONCE(rclcpp::get_logger("ArmHW"), "[DLS] 笛卡尔控制");
 
-        auto outputs = dls_controller_.Update(dls_twist_, hw_states_pos_, hw_states_vel_);
+        std::array<double, 6> twist_target = dls_active ? dls_twist_ : std::array<double, 6>{};
+        auto outputs = dls_controller_.Update(twist_target, hw_states_pos_, hw_states_vel_);
         for (size_t i = 0; i < std::min(outputs.size(), info.joints.size()); ++i)
         {
             if (std::isnan(outputs[i].pos) || std::isnan(outputs[i].vel))
@@ -342,6 +542,7 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
             hw_commands_eff_[i] = outputs[i].tor;
             hold_position_target_[i] = hw_commands_pos_[i];
         }
+        publish_dls_debug(info);
         // 同步关节目标，切回时不跳变
         joint_controller_.SyncPositions(std::vector<double>(hw_commands_pos_.begin(), hw_commands_pos_.begin() + kJointCount));
         return true;
@@ -355,7 +556,7 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
         for (size_t i = 0; i < kJointCount; ++i) 
         {
             pos_ref[i] = hw_states_pos_[i];
-            vel_target[i] = joint_vel_target_[i];
+            vel_target[i] = joint_active ? joint_vel_target_[i] : 0.0;
         }
         auto outputs = joint_controller_.Update(vel_target, pos_ref, joint_lower_limits_, joint_upper_limits_);
         for (size_t i = 0; i < std::min(outputs.size(), kJointCount); ++i) 
@@ -368,6 +569,7 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
             hw_commands_vel_[i] = outputs[i].vel;
             hold_position_target_[i] = hw_commands_pos_[i];
         }
+        publish_joint_debug(info);
         return true;
     }
 

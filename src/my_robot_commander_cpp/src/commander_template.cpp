@@ -152,12 +152,12 @@ private:
         auto msg = std::make_unique<TwistStamped>();
         msg->header.stamp = node_->now();
         msg->header.frame_id = command_frame_id_;
-        msg->twist.linear.x  = -remote_.x()    * 0.2;
-        msg->twist.linear.y  = -remote_.y()    * 0.2;
-        msg->twist.linear.z  = remote_.z()     * 0.2;
-        msg->twist.angular.x = remote_.roll()  * 1.0;
-        msg->twist.angular.y = remote_.pitch() * 1.0;
-        msg->twist.angular.z = -remote_.yaw()  * 1.0;
+        msg->twist.linear.x  = -remote_.x()    * 0.5;
+        msg->twist.linear.y  = -remote_.y()    * 0.5;
+        msg->twist.linear.z  = remote_.z()     * 0.5;
+        msg->twist.angular.x = remote_.roll()  * 1.5;
+        msg->twist.angular.y = remote_.pitch() * 1.5;
+        msg->twist.angular.z = remote_.yaw()   * 1.5;
 
         // 始终发 DLS
         auto dls_msg = std::make_unique<TwistStamped>(*msg);
@@ -198,7 +198,7 @@ private:
         {
             // 纯DLS模式：关节速度发 /joint_vel_cmds
             auto msg = std::make_unique<Float64MultiArray>();
-            constexpr double k = 1.5;
+            constexpr double k = 2.5;
             msg->data = {
                 k * joint_cmds[0], k * joint_cmds[1], k * joint_cmds[2], k * joint_cmds[3],
                 k * joint_cmds[4], k * joint_cmds[5], k * joint_cmds[6]

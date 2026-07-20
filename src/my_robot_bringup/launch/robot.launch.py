@@ -3,9 +3,11 @@ import subprocess
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler
+from launch.conditions import IfCondition
 
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -34,9 +36,14 @@ def generate_launch_description():
     gripper_version = LaunchConfiguration('gripper_version', default=robot_version)
     use_mock_hardware = LaunchConfiguration('use_mock_hardware', default='false')
     gravity_compensation_mode = LaunchConfiguration('gravity_compensation_mode', default='off')
+    gravity_effort_scale = LaunchConfiguration('gravity_effort_scale', default='0.0')
     active_real_joints = LaunchConfiguration('active_real_joints', default='')
     can0_interface = LaunchConfiguration('can0_interface', default='can0')
     can1_interface = LaunchConfiguration('can1_interface', default='can1')
+    start_commander = LaunchConfiguration('start_commander', default='true')
+    start_joy = LaunchConfiguration('start_joy', default='true')
+    joy_dev = LaunchConfiguration('joy_dev', default='/dev/input/js0')
+    use_servo = LaunchConfiguration('use_servo', default='false')
 
     description_pkg = get_package_share_directory("my_robot_description")
     moveit_config_pkg = get_package_share_directory("my_robot_moveit_config")
@@ -58,6 +65,7 @@ def generate_launch_description():
             f"gripper_version:={gripper_version.perform(context)}",
             f"use_mock_hardware:={use_mock_hardware.perform(context)}",
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
+            f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
             f"can1_interface:={can1_interface.perform(context)}",
@@ -73,6 +81,7 @@ def generate_launch_description():
             ' gripper_version:=', gripper_version,
             ' use_mock_hardware:=', use_mock_hardware,
             ' gravity_compensation_mode:=', gravity_compensation_mode,
+            ' gravity_effort_scale:=', gravity_effort_scale,
             ' active_real_joints:=', active_real_joints,
             ' can0_interface:=', can0_interface,
             ' can1_interface:=', can1_interface,
@@ -91,6 +100,7 @@ def generate_launch_description():
                     "gripper_version": gripper_version,
                     "initial_positions_file": initial_positions_file,
                     "gravity_compensation_mode": gravity_compensation_mode,
+                    "gravity_effort_scale": gravity_effort_scale,
                     "active_real_joints": active_real_joints,
                     "can0_interface": can0_interface,
                     "can1_interface": can1_interface,
@@ -124,6 +134,7 @@ def generate_launch_description():
         )
 
         bringup_pkg = get_package_share_directory("my_robot_bringup")
+        commander_pkg = get_package_share_directory("my_robot_commander_cpp")
 
         # 加载控制增益（Python dict，非 ROS2 YAML 参数文件格式）
         control_gains_path = os.path.join(bringup_pkg, "config", "control_gains.yaml")
@@ -195,6 +206,21 @@ def generate_launch_description():
             )
         )
 
+        commander_launch = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(commander_pkg, "launch", "commander.launch.py")),
+            launch_arguments={
+                "robot": robot_version,
+                "arm_version": arm_version,
+                "chassis_version": chassis_version,
+                "gripper_version": gripper_version,
+                "start_joy": start_joy,
+                "joy_dev": joy_dev,
+                "use_servo": use_servo,
+            }.items(),
+            condition=IfCondition(start_commander),
+        )
+
         return [
             robot_state_publisher,
             ros2_control_node,
@@ -203,6 +229,7 @@ def generate_launch_description():
             joint_state_broadcaster_spawner,
             spawn_arm_controller_event,
             spawn_gripper_controller_event,
+            commander_launch,
         ]
 
     return LaunchDescription([
@@ -220,12 +247,22 @@ def generate_launch_description():
             description='Gripper description variant override: v1_0 or v1_1'),
         DeclareLaunchArgument('gravity_compensation_mode', default_value='off',
             description="Gravity compensation: 'off', 'assist', or 'gravity_only'"),
+        DeclareLaunchArgument('gravity_effort_scale', default_value='0.0',
+            description='Gravity compensation effort scale'),
         DeclareLaunchArgument('active_real_joints', default_value='',
             description='Comma-separated joint names for real CAN I/O'),
         DeclareLaunchArgument('can0_interface', default_value='can0',
             description='CAN interface for joints 1-4'),
         DeclareLaunchArgument('can1_interface', default_value='can1',
             description='CAN interface for joints 5-7'),
+        DeclareLaunchArgument('start_commander', default_value='true',
+            description='Start joystick commander node'),
+        DeclareLaunchArgument('start_joy', default_value='true',
+            description='Start joy_node for gamepad input'),
+        DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0',
+            description='Joystick device path'),
+        DeclareLaunchArgument('use_servo', default_value='false',
+            description='Enable MoveIt Servo output in commander'),
 
         OpaqueFunction(function=launch_setup),
     ])

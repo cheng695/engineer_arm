@@ -18,6 +18,9 @@
 # 调整此值会影响 J3 的解耦精度。
 j2j3_coupling: 0.986
 
+# 重力补偿输出比例。默认 0.0 不改变原控制输出；纯重力测试建议从 0.05~0.10 开始。
+gravity_effort_scale: 0.0
+
 arm_control_gains:
   joint1:
     motor_model: J8009

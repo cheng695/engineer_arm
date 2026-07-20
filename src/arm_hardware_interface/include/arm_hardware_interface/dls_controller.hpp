@@ -39,6 +39,15 @@ public:
     double tor;   // 目标关节力矩 (Nm)，速度 DLS 下恒为 0
   };
 
+  struct Diagnostics
+  {
+    std::vector<double> target_positions;
+    std::vector<double> target_velocities;
+    std::vector<double> feedback_positions;
+    std::vector<double> feedback_velocities;
+    bool valid = false;
+  };
+
   DlsController() = default;
 
   /**
@@ -64,6 +73,8 @@ public:
                               const std::vector<double>& pos_ref,
                               const std::vector<double>& vel_ref);
 
+  const Diagnostics& LastDiagnostics() const { return last_diagnostics_; }
+
 private:
   const pinocchio::Model* model_ = nullptr;   // Pinocchio 模型（共享，不拷贝）
   std::unique_ptr<pinocchio::Data> data_;     // Pinocchio 运行时数据
@@ -75,6 +86,7 @@ private:
   Eigen::VectorXd vel_last_;                  // 上一帧速度，用于加速度限制
   Eigen::VectorXd pos_tar_;                   // 跨帧累积目标位置
   bool pos_tar_initialized_ = false;
+  Diagnostics last_diagnostics_;
 };
 
 }  // namespace arm_hardware_interface
