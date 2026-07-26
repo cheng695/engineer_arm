@@ -12,6 +12,7 @@
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <array>
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -39,6 +40,12 @@ public:
         use_servo_ = node_->get_parameter("use_servo").as_bool();
         node_->declare_parameter("arm_version", "v1_0");
         const auto arm_version = node_->get_parameter("arm_version").as_string();
+        node_->declare_parameter("gripper_min_angle", 0.0);
+        node_->declare_parameter("gripper_max_angle", 1.2);
+        node_->declare_parameter("gripper_speed", 0.8);
+        gripper_min_angle_ = node_->get_parameter("gripper_min_angle").as_double();
+        gripper_max_angle_ = node_->get_parameter("gripper_max_angle").as_double();
+        gripper_speed_ = node_->get_parameter("gripper_speed").as_double();
         node_->declare_parameter<std::vector<double>>(
             "joint_control_directions", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
         const auto directions = node_->get_parameter("joint_control_directions").as_double_array();
@@ -91,6 +98,7 @@ public:
 
         // ---- 电机使能/失能 ----
         joint_pos_pub_ = node_->create_publisher<Float64MultiArray>("/joint_pos_cmds", 10);
+        gripper_cmd_pub_ = node_->create_publisher<Float64MultiArray>("/gripper_controller/commands", 10);
         motor_enable_pub_ = node_->create_publisher<std_msgs::msg::Bool>("/arm_motor_enable", 10);
 
         // ---- 固定位姿通知 ----
@@ -141,6 +149,8 @@ private:
         if (remote_.y_btn()) { goNamedTarget("up");    return; }
         if (remote_.x_btn()) { goNamedTarget("left");  return; }
 
+        publishGripper();
+
         if (!enabled_) return;
 
         if (joint_mode_)  publishJoint();
@@ -157,7 +167,7 @@ private:
         msg->twist.linear.z  = remote_.z()     * 0.5;
         msg->twist.angular.x = remote_.roll()  * 1.5;
         msg->twist.angular.y = remote_.pitch() * 1.5;
-        msg->twist.angular.z = remote_.yaw()   * 1.5;
+        msg->twist.angular.z = -remote_.yaw()  * 1.5;
 
         // 始终发 DLS
         auto dls_msg = std::make_unique<TwistStamped>(*msg);
@@ -205,6 +215,48 @@ private:
             };
             vel_pub_->publish(std::move(msg));
         }
+    }
+
+    void publishGripper()
+    {
+        const bool open = remote_.open_gripper();
+        const bool close = remote_.close_gripper();
+        if (open == close)
+            return;
+
+        if (!gripper_target_initialized_)
+        {
+            gripper_target_angle_ = currentGripperPosition();
+            gripper_target_initialized_ = true;
+        }
+
+        constexpr double kJoyPeriod = 0.01;  // joy_node autorepeat_rate defaults to 100 Hz.
+        const double direction = open ? 1.0 : -1.0;
+        gripper_target_angle_ = std::clamp(
+            gripper_target_angle_ + direction * gripper_speed_ * kJoyPeriod,
+            gripper_min_angle_,
+            gripper_max_angle_);
+
+        auto msg = std::make_unique<Float64MultiArray>();
+        msg->data = {gripper_target_angle_};
+        gripper_cmd_pub_->publish(std::move(msg));
+
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 500,
+            "[GRIPPER-CMD] target=%.4f rad feedback=%.4f rad speed=%.3f rad/s",
+            gripper_target_angle_, currentGripperPosition(), gripper_speed_);
+    }
+
+    double currentGripperPosition() const
+    {
+        if (last_joint_state_)
+        {
+            for (size_t i = 0; i < last_joint_state_->name.size() && i < last_joint_state_->position.size(); ++i)
+            {
+                if (last_joint_state_->name[i] == "joint_right_finger")
+                    return std::clamp(last_joint_state_->position[i], gripper_min_angle_, gripper_max_angle_);
+            }
+        }
+        return gripper_min_angle_;
     }
 
     void publishTeleopHold()
@@ -349,6 +401,12 @@ private:
     // 纯DLS关节模式
     rclcpp::Publisher<Float64MultiArray>::SharedPtr vel_pub_;
     rclcpp::Publisher<Float64MultiArray>::SharedPtr joint_pos_pub_;
+    rclcpp::Publisher<Float64MultiArray>::SharedPtr gripper_cmd_pub_;
+    double gripper_min_angle_{0.0};
+    double gripper_max_angle_{1.2};
+    double gripper_speed_{0.8};
+    double gripper_target_angle_{0.0};
+    bool gripper_target_initialized_{false};
 
     // MoveGroup
     std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;

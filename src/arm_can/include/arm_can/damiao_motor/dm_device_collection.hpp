@@ -237,7 +237,7 @@ public:
             static_cast<float>(velocities[idx] * dir),
             static_cast<float>(idx < kps.size() ? kps[idx] : motor->get_kp()),
             static_cast<float>(idx < kds.size() ? kds[idx] : motor->get_kd()),
-            static_cast<float>(efforts[idx]),
+            static_cast<float>(efforts[idx] * dir),
             data);
 
         auto it = can_buses_.find(bus_name);

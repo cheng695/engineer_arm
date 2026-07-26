@@ -7,7 +7,8 @@ CAN0_NAME="${CAN0_NAME:-can0}"
 CAN1_NAME="${CAN1_NAME:-can1}"
 CAN_DRIVER="${CAN_DRIVER:-}"
 BITRATE="${BITRATE:-1000000}"
-GRAVITY_MODE="${GRAVITY_MODE:-off}"
+GRAVITY_MODE="${GRAVITY_MODE:-assist}"
+GRAVITY_SCALE="${GRAVITY_SCALE:-1.1}"
 ACTIVE_REAL_JOINTS="${ACTIVE_REAL_JOINTS:-}"
 BUILD_WS=0
 SKIP_CAN=0
@@ -21,7 +22,8 @@ Options:
   --ws-dir <path>          Workspace path (default: ~/Desktop/engineer_whc)
   --ros-distro <name>      ROS distro (default: humble)
   --bitrate <value>        CAN bitrate for can0/can1 (default: 1000000)
-  --gravity-mode <mode>    off | assist | gravity_only (default: off)
+  --gravity-mode <mode>    off | assist | gravity_only (default: assist)
+  --gravity-scale <value>  Gravity effort scale passed to bringup (default: 1.1)
   --can-driver <module>    Optional CAN kernel module to load (default: empty)
   --can0 <name>            CAN interface name for joints 1-4 (default: can0)
   --can1 <name>            CAN interface name for joints 5-7 (default: can1)
@@ -67,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --gravity-mode)
       GRAVITY_MODE="$2"
+      shift 2
+      ;;
+    --gravity-scale)
+      GRAVITY_SCALE="$2"
       shift 2
       ;;
     --can-driver)
@@ -176,10 +182,11 @@ source "$WS_DIR/install/setup.bash"
 set -u
 
 log "Launching real robot bringup..."
-log "use_mock_hardware:=false gravity_compensation_mode:=${GRAVITY_MODE} active_real_joints:=${ACTIVE_REAL_JOINTS:-<all>}"
+log "use_mock_hardware:=false gravity_compensation_mode:=${GRAVITY_MODE} gravity_effort_scale:=${GRAVITY_SCALE} active_real_joints:=${ACTIVE_REAL_JOINTS:-<all>}"
 launch_args=(
   use_mock_hardware:=false
   gravity_compensation_mode:="${GRAVITY_MODE}"
+  gravity_effort_scale:="${GRAVITY_SCALE}"
 )
 
 if [[ -n "${ACTIVE_REAL_JOINTS}" ]]; then

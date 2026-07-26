@@ -147,4 +147,5 @@
     <disable_collisions link1="W4" link2="right_finger_Link" reason="Never"/>
     <disable_collisions link1="end_effector_link" link2="left_finger_Link" reason="Adjacent"/>
     <disable_collisions link1="end_effector_link" link2="right_finger_Link" reason="Adjacent"/>
+    <disable_collisions link1="left_finger_Link" link2="right_finger_Link" reason="Never"/>
 </robot>

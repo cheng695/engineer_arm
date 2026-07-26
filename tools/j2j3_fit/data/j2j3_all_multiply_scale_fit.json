@@ -1,0 +1,45 @@
+{
+  "source_csv": "/home/whc/engineer_whc/all.csv",
+  "columns": {
+    "joint2": "I2",
+    "joint3": "I3",
+    "imu_pitch_deg": "I1"
+  },
+  "model": "joint3_decoupled = scale*raw_joint3 + a3*raw_joint2^3 + a2*raw_joint2^2 + a1*raw_joint2 + a0; fk_pitch_deg = rad2deg(joint3_decoupled - raw_joint2)",
+  "model_type": "fk-poly",
+  "scale_mode": "multiply",
+  "optimizer": "trf-bounded-least-squares",
+  "optimizer_success": true,
+  "optimizer_message": "`ftol` termination condition is satisfied.",
+  "iterations": 4,
+  "coeff_names": [
+    "a3",
+    "a2",
+    "a1",
+    "a0",
+    "scale"
+  ],
+  "coeff": [
+    -0.02965479046139521,
+    0.039515325887944715,
+    0.9628030587769767,
+    0.012662107295368262,
+    0.9922083049109146
+  ],
+  "initial_coeff": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    1.0
+  ],
+  "sample_count": 23335,
+  "rmse_deg": 4.4689796517354665,
+  "r_squared": 0.991278981060559,
+  "max_abs_error_deg": 7.68961869219628,
+  "mean_error_deg": 2.167027126654475e-10,
+  "imu_sign": 1.0,
+  "imu_offset_deg": 0.0,
+  "imu_pitch_unit": "deg",
+  "created_at": "2026-07-25 04:33:10"
+}

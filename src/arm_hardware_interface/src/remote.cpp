@@ -6,7 +6,7 @@ namespace remote
 
 bool Remote::update(const sensor_msgs::msg::Joy& msg)
 {
-    if (msg.axes.size() < 8 || msg.buttons.size() < 10)
+    if (msg.axes.size() < 8 || msg.buttons.size() < kMaxButtons)
     {
         return false;
     }

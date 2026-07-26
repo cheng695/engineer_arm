@@ -41,10 +41,34 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     auto it_coupling = info_.hardware_parameters.find("j2j3_coupling");
     if (it_coupling != info_.hardware_parameters.end())
         j2j3_coupling_ = std::stod(it_coupling->second);
+    auto it_j3_scale = info_.hardware_parameters.find("j2j3_j3_scale");
+    if (it_j3_scale != info_.hardware_parameters.end())
+        j2j3_j3_scale_ = std::stod(it_j3_scale->second);
+    auto it_j3_offset = info_.hardware_parameters.find("j2j3_j3_offset");
+    if (it_j3_offset != info_.hardware_parameters.end())
+        j2j3_j3_offset_ = std::stod(it_j3_offset->second);
+    auto it_poly_a3 = info_.hardware_parameters.find("j2j3_poly_a3");
+    if (it_poly_a3 != info_.hardware_parameters.end())
+        j2j3_poly_a3_ = std::stod(it_poly_a3->second);
+    auto it_poly_a2 = info_.hardware_parameters.find("j2j3_poly_a2");
+    if (it_poly_a2 != info_.hardware_parameters.end())
+        j2j3_poly_a2_ = std::stod(it_poly_a2->second);
+    auto it_poly_a1 = info_.hardware_parameters.find("j2j3_poly_a1");
+    if (it_poly_a1 != info_.hardware_parameters.end())
+        j2j3_poly_a1_ = std::stod(it_poly_a1->second);
+    auto it_poly_a0 = info_.hardware_parameters.find("j2j3_poly_a0");
+    if (it_poly_a0 != info_.hardware_parameters.end())
+        j2j3_poly_a0_ = std::stod(it_poly_a0->second);
+    auto it_scale_mode = info_.hardware_parameters.find("j2j3_scale_mode");
+    if (it_scale_mode != info_.hardware_parameters.end())
+        j2j3_scale_mode_ = it_scale_mode->second;
 
     auto it_gravity_scale = info_.hardware_parameters.find("gravity_effort_scale");
     if (it_gravity_scale != info_.hardware_parameters.end())
         gravity_effort_scale_ = std::stod(it_gravity_scale->second);
+    auto it_j3_gravity_scale = info_.hardware_parameters.find("j2j3_j3_gravity_effort_scale");
+    if (it_j3_gravity_scale != info_.hardware_parameters.end())
+        j3_gravity_effort_scale_ = std::stod(it_j3_gravity_scale->second);
 
     // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）
     auto it = info_.hardware_parameters.find("active_real_joints");
@@ -295,7 +319,7 @@ void RealArmHardwareInterface::sync_control_gains()
     if (!internal_node_)
         return;
 
-    // j2j3_coupling
+    // j2j3 coupling parameters
     double coupling = j2j3_coupling_;
     internal_node_->get_parameter_or("j2j3_coupling", coupling, coupling);
     if (coupling != j2j3_coupling_)
@@ -304,6 +328,64 @@ void RealArmHardwareInterface::sync_control_gains()
         RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
             "[GAIN] j2j3_coupling=%.4f (来自 YAML)", coupling);
     }
+    double j3_scale = j2j3_j3_scale_;
+    internal_node_->get_parameter_or("j2j3_j3_scale", j3_scale, j3_scale);
+    if (std::abs(j3_scale) < 1e-9)
+    {
+        RCLCPP_WARN(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_j3_scale 太接近 0，保持 %.4f", j2j3_j3_scale_);
+        j3_scale = j2j3_j3_scale_;
+    }
+    if (j3_scale != j2j3_j3_scale_)
+    {
+        j2j3_j3_scale_ = j3_scale;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_j3_scale=%.4f (来自 YAML)", j3_scale);
+    }
+    double j3_offset = j2j3_j3_offset_;
+    internal_node_->get_parameter_or("j2j3_j3_offset", j3_offset, j3_offset);
+    if (j3_offset != j2j3_j3_offset_)
+    {
+        j2j3_j3_offset_ = j3_offset;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_j3_offset=%.4f rad (来自 YAML)", j3_offset);
+    }
+    double poly_a3 = j2j3_poly_a3_;
+    internal_node_->get_parameter_or("j2j3_poly_a3", poly_a3, poly_a3);
+    double poly_a2 = j2j3_poly_a2_;
+    internal_node_->get_parameter_or("j2j3_poly_a2", poly_a2, poly_a2);
+    double poly_a1 = j2j3_poly_a1_;
+    internal_node_->get_parameter_or("j2j3_poly_a1", poly_a1, poly_a1);
+    double poly_a0 = j2j3_poly_a0_;
+    internal_node_->get_parameter_or("j2j3_poly_a0", poly_a0, poly_a0);
+    if (poly_a3 != j2j3_poly_a3_ || poly_a2 != j2j3_poly_a2_ ||
+        poly_a1 != j2j3_poly_a1_ || poly_a0 != j2j3_poly_a0_)
+    {
+        j2j3_poly_a3_ = poly_a3;
+        j2j3_poly_a2_ = poly_a2;
+        j2j3_poly_a1_ = poly_a1;
+        j2j3_poly_a0_ = poly_a0;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_poly=[%.6f, %.6f, %.6f, %.6f] (来自 YAML)",
+            poly_a3, poly_a2, poly_a1, poly_a0);
+    }
+    std::string scale_mode = j2j3_scale_mode_;
+    internal_node_->get_parameter_or("j2j3_scale_mode", scale_mode, scale_mode);
+    if (scale_mode != j2j3_scale_mode_)
+    {
+        j2j3_scale_mode_ = scale_mode;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_scale_mode=%s (来自 YAML)", scale_mode.c_str());
+    }
+    double j3_gravity_scale = j3_gravity_effort_scale_;
+    internal_node_->get_parameter_or(
+        "j2j3_j3_gravity_effort_scale", j3_gravity_scale, j3_gravity_scale);
+    if (j3_gravity_scale != j3_gravity_effort_scale_)
+    {
+        j3_gravity_effort_scale_ = j3_gravity_scale;
+        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+            "[GAIN] j2j3_j3_gravity_effort_scale=%.4f (来自 YAML)", j3_gravity_scale);
+    }
 
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
@@ -311,13 +393,18 @@ void RealArmHardwareInterface::sync_control_gains()
         auto motor = device_collection_.getMotor(i);
         if (!motor) continue;
 
-        std::string prefix = "arm_control_gains." + name + ".";
-
         double kp = motor->get_kp();
         double kd = motor->get_kd();
 
-        internal_node_->get_parameter_or(prefix + "kp", kp, kp);
-        internal_node_->get_parameter_or(prefix + "kd", kd, kd);
+        auto read_gains = [&](const std::string& key) {
+            std::string prefix = "arm_control_gains." + key + ".";
+            internal_node_->get_parameter_or(prefix + "kp", kp, kp);
+            internal_node_->get_parameter_or(prefix + "kd", kd, kd);
+        };
+
+        read_gains(name);
+        if (name == "joint_right_finger")
+            read_gains("gripper");
 
         if (kp != motor->get_kp() || kd != motor->get_kd())
         {
@@ -394,14 +481,19 @@ void RealArmHardwareInterface::refresh_feedback_before_enable()
 
 void RealArmHardwareInterface::sync_control_targets_to_feedback()
 {
+    for (size_t i = 0; i < info_.joints.size(); ++i)
+    {
+        hw_commands_pos_[i] = hw_states_pos_[i];
+        hw_commands_vel_[i] = 0.0;
+        hw_commands_eff_[i] = 0.0;
+        if (i < hold_position_target_.size())
+            hold_position_target_[i] = hw_states_pos_[i];
+    }
+
     std::vector<double> cur_pos(kJointCount, 0.0);
     for (size_t i = 0; i < std::min(kJointCount, hw_states_pos_.size()); ++i)
     {
         cur_pos[i] = hw_states_pos_[i];
-        hw_commands_pos_[i] = hw_states_pos_[i];
-        hw_commands_vel_[i] = 0.0;
-        hw_commands_eff_[i] = 0.0;
-        hold_position_target_[i] = hw_states_pos_[i];
     }
 
     std::fill(dls_twist_.begin(), dls_twist_.end(), 0.0);
@@ -430,7 +522,8 @@ void RealArmHardwareInterface::enable_motors()
     fsm_.onEnable();
     fsm_.update(false, false);
 
-    device_collection_.enableAll();
+    if (!clear_errors_enable_and_wait())
+        return;
 
     motors_enabled_ = true;
     safe_zero_frames_ = kSafeZeroFrames;
@@ -574,6 +667,8 @@ void RealArmHardwareInterface::send_can_commands()
         grav = gravity_compensator_.compute(hw_states_pos_);
         for (double& tau : grav)
             tau *= gravity_effort_scale_;
+        if (kJ3Index < grav.size())
+            grav[kJ3Index] *= j3_gravity_effort_scale_;
     }
     else if (gravity_mode == GravityCompensator::Mode::GravityOnly &&
              motors_enabled_ &&
@@ -590,37 +685,67 @@ void RealArmHardwareInterface::send_can_commands()
     std::vector<double> cmd_eff(n_motors, 0.0);
     std::vector<double> cmd_kp;
     std::vector<double> cmd_kd;
-    if (gravity_only)
-    {
-        cmd_kp.assign(n_motors, 0.0);
-        cmd_kd.assign(n_motors, 0.0);
-    }
+    cmd_kp.reserve(n_motors);
+    cmd_kd.reserve(n_motors);
 
     size_t motor_idx = 0;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         if (!use_real_joint_io_[i]) continue;
-        double pos = gravity_only ? hw_states_pos_[i] : hw_commands_pos_[i];
-        double vel = gravity_only ? 0.0 : hw_commands_vel_[i];
-        double eff = (gravity_only ? 0.0 : hw_commands_eff_[i]) +
+        const bool arm_gravity_only = gravity_only && i < kJointCount;
+        double pos = arm_gravity_only ? hw_states_pos_[i] : hw_commands_pos_[i];
+        double vel = arm_gravity_only ? 0.0 : hw_commands_vel_[i];
+        double eff = (arm_gravity_only ? 0.0 : hw_commands_eff_[i]) +
             (i < grav.size() ? grav[i] : 0.0);
         if (i == kJ3Index && use_real_joint_io_[kJ2Index])
         {
-            const double j2_pos = gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
-            const double j2_vel = gravity_only ? 0.0 : hw_commands_vel_[kJ2Index];
-            pos -= j2j3_coupling_ * j2_pos;
-            vel -= j2j3_coupling_ * j2_vel;
+            const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
+            const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
+            const double j2_vel = arm_gravity_only ? 0.0 : hw_commands_vel_[kJ2Index];
+            const double correction = j2j3_poly_correction(j2_pos);
+            const double derivative = j2j3_poly_derivative(j2_pos);
+            if (j2j3_scale_mode_is_multiply())
+            {
+                pos = (pos - correction) / j3_scale;
+                vel = (vel - derivative * j2_vel) / j3_scale;
+                eff *= j3_scale;
+            }
+            else
+            {
+                pos = j3_scale * pos - correction;
+                vel = j3_scale * vel - derivative * j2_vel;
+                eff /= j3_scale;
+            }
         }
         if (i == kJ2Index && use_real_joint_io_[kJ3Index])
         {
+            const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
             const double j3_eff =
-                (gravity_only ? 0.0 : hw_commands_eff_[kJ3Index]) +
+                (arm_gravity_only ? 0.0 : hw_commands_eff_[kJ3Index]) +
                 (kJ3Index < grav.size() ? grav[kJ3Index] : 0.0);
-            eff += j2j3_coupling_ * j3_eff;
+            const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
+            const double derivative = j2j3_poly_derivative(j2_pos);
+            eff += (j2j3_scale_mode_is_multiply() ? derivative : derivative / j3_scale) * j3_eff;
         }
         cmd_pos[motor_idx] = pos;
         cmd_vel[motor_idx] = vel;
         cmd_eff[motor_idx] = eff;
+        cmd_kp.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kp());
+        cmd_kd.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kd());
+
+        if (info_.joints[i].name == "joint_right_finger")
+        {
+            static size_t gripper_log_counter = 0;
+            if (++gripper_log_counter % 250 == 0)
+            {
+                RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
+                    "[GRIPPER-HW] target=%.4f rad feedback=%.4f rad raw=%.4f rad vel_cmd=%.4f rad/s "
+                    "motor_cmd=%.4f rad mode=%s kp=%.2f kd=%.2f",
+                    hw_commands_pos_[i], hw_states_pos_[i], raw_motor_pos_[i], hw_commands_vel_[i],
+                    pos, gravity_only ? "gravity_only" : "normal",
+                    cmd_kp.back(), cmd_kd.back());
+            }
+        }
         motor_idx++;
     }
 

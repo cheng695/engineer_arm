@@ -12,6 +12,7 @@ find_package(moveit_ros_planning_interface REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(arm_hardware_interface REQUIRED)
 
 add_executable(joy_to_servo_node
@@ -31,6 +32,7 @@ ament_target_dependencies(joy_to_servo_node
   control_msgs
   geometry_msgs
   sensor_msgs
+  std_msgs
   arm_hardware_interface
 )
 

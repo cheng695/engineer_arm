@@ -388,15 +388,54 @@ void ArmHardwareBase::apply_j2j3_coupling()
 {
     if (use_real_joint_io_[kJ2Index] && use_real_joint_io_[kJ3Index])
     {
-        double raw_j3_pos = hw_states_pos_[kJ3Index];
-        double raw_j3_vel = hw_states_vel_[kJ3Index];
-        double raw_j2_eff = hw_states_eff_[kJ2Index];
-        double raw_j3_eff = hw_states_eff_[kJ3Index];
-        hw_states_pos_[kJ3Index] = raw_j3_pos + j2j3_coupling_ * hw_states_pos_[kJ2Index];
-        hw_states_vel_[kJ3Index] = raw_j3_vel + j2j3_coupling_ * hw_states_vel_[kJ2Index];
-        hw_states_eff_[kJ2Index] = raw_j2_eff - j2j3_coupling_ * raw_j3_eff;
-        hw_states_eff_[kJ3Index] = raw_j3_eff;
+        const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
+        const double raw_j2_pos = hw_states_pos_[kJ2Index];
+        const double raw_j2_vel = hw_states_vel_[kJ2Index];
+        const double raw_j2_eff = hw_states_eff_[kJ2Index];
+        const double raw_j3_pos = hw_states_pos_[kJ3Index];
+        const double raw_j3_vel = hw_states_vel_[kJ3Index];
+        const double raw_j3_eff = hw_states_eff_[kJ3Index];
+        const double correction = j2j3_poly_correction(raw_j2_pos);
+        const double derivative = j2j3_poly_derivative(raw_j2_pos);
+
+        if (j2j3_scale_mode_is_multiply())
+        {
+            hw_states_pos_[kJ3Index] = j3_scale * raw_j3_pos + correction;
+            hw_states_vel_[kJ3Index] = j3_scale * raw_j3_vel + derivative * raw_j2_vel;
+            const double j3_eff = raw_j3_eff / j3_scale;
+            hw_states_eff_[kJ2Index] = raw_j2_eff - derivative * j3_eff;
+            hw_states_eff_[kJ3Index] = j3_eff;
+        }
+        else
+        {
+            hw_states_pos_[kJ3Index] = (raw_j3_pos + correction) / j3_scale;
+            hw_states_vel_[kJ3Index] = (raw_j3_vel + derivative * raw_j2_vel) / j3_scale;
+            hw_states_eff_[kJ2Index] = raw_j2_eff - derivative * raw_j3_eff;
+            hw_states_eff_[kJ3Index] = j3_scale * raw_j3_eff;
+        }
     }
+}
+
+double ArmHardwareBase::j2j3_poly_correction(double j2_pos) const
+{
+    return j2j3_coupling_ * j2_pos - j2j3_j3_offset_ +
+        j2j3_poly_a3_ * j2_pos * j2_pos * j2_pos +
+        j2j3_poly_a2_ * j2_pos * j2_pos +
+        j2j3_poly_a1_ * j2_pos +
+        j2j3_poly_a0_;
+}
+
+double ArmHardwareBase::j2j3_poly_derivative(double j2_pos) const
+{
+    return j2j3_coupling_ +
+        3.0 * j2j3_poly_a3_ * j2_pos * j2_pos +
+        2.0 * j2j3_poly_a2_ * j2_pos +
+        j2j3_poly_a1_;
+}
+
+bool ArmHardwareBase::j2j3_scale_mode_is_multiply() const
+{
+    return j2j3_scale_mode_ == "multiply" || j2j3_scale_mode_ == "mul";
 }
 
 void ArmHardwareBase::apply_gravity_to_effort()
@@ -415,10 +454,21 @@ void ArmHardwareBase::apply_gravity_to_effort()
             use_real_joint_io_[kJ2Index] &&
             use_real_joint_io_[kJ3Index])
         {
-            gravity_motor_eff_[kJ2Index] += j2j3_coupling_ * tau[kJ3Index];
+            const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
+            const double derivative = j2j3_poly_derivative(hw_states_pos_[kJ2Index]);
+            if (j2j3_scale_mode_is_multiply())
+            {
+                gravity_motor_eff_[kJ2Index] = tau[kJ2Index] + derivative * tau[kJ3Index];
+                gravity_motor_eff_[kJ3Index] = j3_scale * tau[kJ3Index];
+            }
+            else
+            {
+                gravity_motor_eff_[kJ2Index] = tau[kJ2Index] + (derivative / j3_scale) * tau[kJ3Index];
+                gravity_motor_eff_[kJ3Index] = tau[kJ3Index] / j3_scale;
+            }
         }
 
-        // 调试阶段：只观察 Pinocchio 计算出的重力力矩，不在 send_can_commands() 中叠加到电机命令。
+        // 发布 Pinocchio 计算出的重力力矩，便于在 Foxglove/ros2 topic 中观察。
         if (++gravity_debug_counter_ >= 250)
         {
             gravity_debug_counter_ = 0;
@@ -531,7 +581,7 @@ bool ArmHardwareBase::process_control(const hardware_interface::HardwareInfo& in
 
         std::array<double, 6> twist_target = dls_active ? dls_twist_ : std::array<double, 6>{};
         auto outputs = dls_controller_.Update(twist_target, hw_states_pos_, hw_states_vel_);
-        for (size_t i = 0; i < std::min(outputs.size(), info.joints.size()); ++i)
+        for (size_t i = 0; i < std::min(outputs.size(), static_cast<size_t>(kJointCount)); ++i)
         {
             if (std::isnan(outputs[i].pos) || std::isnan(outputs[i].vel))
             {

@@ -82,6 +82,9 @@ protected:
 
     /// 对 J2/J3 状态施加同步带耦合解耦
     void apply_j2j3_coupling();
+    double j2j3_poly_correction(double j2_pos) const;
+    double j2j3_poly_derivative(double j2_pos) const;
+    bool j2j3_scale_mode_is_multiply() const;
 
     /// 计算重力力矩并覆盖 hw_states_eff_（前提：gravity_compensator_ 已初始化）
     void apply_gravity_to_effort();
@@ -129,6 +132,13 @@ protected:
     // 硬件参数
     // ================================================================
     double j2j3_coupling_ = 0.986;
+    double j2j3_j3_scale_ = 1.0;
+    double j2j3_j3_offset_ = 0.0;
+    double j2j3_poly_a3_ = 0.0;
+    double j2j3_poly_a2_ = 0.0;
+    double j2j3_poly_a1_ = 0.0;
+    double j2j3_poly_a0_ = 0.0;
+    std::string j2j3_scale_mode_ = "divide";
 
     // ================================================================
     // 重力补偿

@@ -16,6 +16,12 @@ def generate_launch_description():
     # 路径定义
     description_package = "my_robot_description"
     bringup_package = "my_robot_bringup"
+    control_gains_path = os.path.join(
+        get_package_share_directory(bringup_package),
+        "config", "control_gains.yaml")
+    with open(control_gains_path, "r") as f:
+        control_gains = yaml.safe_load(f)
+    default_j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
 
     # 启动参数（对齐 openarm 命名习惯）
     robot_version = LaunchConfiguration("robot", default="v1_0")
@@ -25,6 +31,8 @@ def generate_launch_description():
     use_mock_hardware = LaunchConfiguration("use_mock_hardware", default="false")
     gravity_compensation_mode = LaunchConfiguration("gravity_compensation_mode", default="off")
     gravity_effort_scale = LaunchConfiguration("gravity_effort_scale", default="0.0")
+    j2j3_j3_gravity_effort_scale = LaunchConfiguration(
+        "j2j3_j3_gravity_effort_scale", default=default_j3_gravity_scale)
     active_real_joints = LaunchConfiguration("active_real_joints", default="")
     can0_interface = LaunchConfiguration("can0_interface", default="can0")
     can1_interface = LaunchConfiguration("can1_interface", default="can1")
@@ -36,6 +44,9 @@ def generate_launch_description():
     urdf_file = "/tmp/robot_description.urdf"
 
     def generate_urdf_file(context):
+        j3_gravity_scale = j2j3_j3_gravity_effort_scale.perform(context)
+        if not j3_gravity_scale:
+            j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
         args = [
             "xacro",
             description_xacro_file,
@@ -45,6 +56,7 @@ def generate_launch_description():
             f"use_mock_hardware:={use_mock_hardware.perform(context)}",
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
             f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
+            f"j2j3_j3_gravity_effort_scale:={j3_gravity_scale}",
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
             f"can1_interface:={can1_interface.perform(context)}",
@@ -67,6 +79,7 @@ def generate_launch_description():
             " use_mock_hardware:=", use_mock_hardware,
             " gravity_compensation_mode:=", gravity_compensation_mode,
             " gravity_effort_scale:=", gravity_effort_scale,
+            " j2j3_j3_gravity_effort_scale:=", j2j3_j3_gravity_effort_scale,
             " active_real_joints:=", active_real_joints,
             " can0_interface:=", can0_interface,
             " can1_interface:=", can1_interface,
@@ -82,13 +95,6 @@ def generate_launch_description():
             controllers_file,
         ]
     )
-
-    # 加载控制增益（Python dict，非 ROS2 YAML 参数文件格式）
-    control_gains_path = os.path.join(
-        get_package_share_directory(bringup_package),
-        "config", "control_gains.yaml")
-    with open(control_gains_path, "r") as f:
-        control_gains = yaml.safe_load(f)
 
     control_node = Node(
         package="controller_manager",
@@ -160,6 +166,8 @@ def generate_launch_description():
             description="Gravity compensation mode: off, assist, gravity_only"),
         DeclareLaunchArgument("gravity_effort_scale", default_value="0.0",
             description="Gravity compensation effort scale"),
+        DeclareLaunchArgument("j2j3_j3_gravity_effort_scale", default_value=default_j3_gravity_scale,
+            description="J3-only gravity effort multiplier; defaults to control_gains.yaml"),
         DeclareLaunchArgument("active_real_joints", default_value="",
             description="Comma-separated list of joint names using real CAN I/O"),
         DeclareLaunchArgument("can0_interface", default_value="can0",

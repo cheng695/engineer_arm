@@ -83,6 +83,7 @@ private:
     // ---- CAN 电机集合 ----
     arm_can::damiao_motor::DMDeviceCollection device_collection_;
     double gravity_effort_scale_{0.0};
+    double j3_gravity_effort_scale_{1.0};
 };
 
 }  // namespace arm_hardware_interface

@@ -11,15 +11,28 @@
 #   kp: MIT 模式比例增益（位置刚度）
 #   kd: MIT 模式微分增益（速度阻尼）
 #
-# 注意：joint3 的 kp/kd 显著低于其他关节，这是 J2/J3 同步带耦合机构
-#   的设计特性 —— 过高增益会引起该关节振荡。
 
-# J2/J3 同步带耦合系数（J3 实际位置 = 电机反馈 + 耦合系数 × J2 位置）
-# 调整此值会影响 J3 的解耦精度。
-j2j3_coupling: 0.986
+# J2/J3 同步带耦合参数：
+#   divide 模式:
+#     J3 = (M3 + coupling*J2 - offset + a3*J2^3 + a2*J2^2 + a1*J2 + a0) / scale
+#   multiply 模式:
+#     J3 = scale*M3 + coupling*J2 - offset + a3*J2^3 + a2*J2^2 + a1*J2 + a0
+#
+# 当前试验参数来自:
+#   python3 tools/j2j3_fit/j2j3_imu_fk_fit.py J.csv --fit-scale --scale-mode multiply --scale-min 0.7 --scale-max 1.3
+j2j3_scale_mode: multiply
+j2j3_coupling: 0.0
+j2j3_j3_scale: 0.7
+j2j3_j3_offset: 0.0
+j2j3_poly_a3: -0.1041262438
+j2j3_poly_a2: 0.1208684194
+j2j3_poly_a1: 0.6827545244
+j2j3_poly_a0: 0.3801699144
+# 只放大/缩小 J3 的重力补偿力矩，不影响 J3 位置解耦。
+j2j3_j3_gravity_effort_scale: 1.11
 
-# 重力补偿输出比例。默认 0.0 不改变原控制输出；纯重力测试建议从 0.05~0.10 开始。
-gravity_effort_scale: 0.0
+# 重力补偿输出比例。assist 模式下叠加到正常控制输出；gravity_only 模式下只输出重力项。
+gravity_effort_scale: 1.1
 
 arm_control_gains:
   joint1:
@@ -30,13 +43,13 @@ arm_control_gains:
 
   joint2:
     motor_model: J8009
-    kp: 120.0
+    kp: 240.0
     kd: 3.0
     can_bus: can0
 
   joint3:
     motor_model: J8009
-    kp: 120.0
+    kp: 240.0
     kd: 3.0
     can_bus: can0
 
@@ -59,6 +72,12 @@ arm_control_gains:
     can_bus: can1
 
   joint7:
+    motor_model: J4310
+    kp: 60.0
+    kd: 1.0
+    can_bus: can1
+
+  gripper:
     motor_model: J4310
     kp: 60.0
     kd: 1.0

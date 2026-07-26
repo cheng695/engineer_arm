@@ -2,6 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!--Arm v1.1 link definitions generated from src/V1.1urdf/robot.urdf.-->
+  <xacro:property name="v1_1_collision_scale" value="0.85" />
   
   <!-- ==================== base_link ==================== -->
   <link name="base_link" />
@@ -106,7 +107,7 @@
     <collision>
       <origin xyz="0.010497 0 0.104100" rpy="0 0 0" />
       <geometry>
-        <box size="0.104994 0.195400 0.125200" />
+        <box size="${0.104994 * v1_1_collision_scale} ${0.195400 * v1_1_collision_scale} ${0.125200 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -211,7 +212,7 @@
     <collision>
       <origin xyz="0 0.036500 0.174789" rpy="0 0 0" />
       <geometry>
-        <box size="0.094000 0.095000 0.439578" />
+        <box size="${0.094000 * v1_1_collision_scale} ${0.095000 * v1_1_collision_scale} ${0.439578 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -361,7 +362,7 @@
     <collision>
       <origin xyz="0.109111 -0.037850 0.001500" rpy="0 0 0" />
       <geometry>
-        <box size="0.281777 0.108000 0.083000" />
+        <box size="${0.281777 * v1_1_collision_scale} ${0.108000 * v1_1_collision_scale} ${0.083000 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -439,7 +440,7 @@
     <collision>
       <origin xyz="0.055625 -0.001600 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.055750 0.063200 0.070000" />
+        <box size="${0.055750 * v1_1_collision_scale} ${0.063200 * v1_1_collision_scale} ${0.070000 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -490,7 +491,7 @@
     <collision>
       <origin xyz="0.066883 0.038200 0.080585" rpy="0 0 0" />
       <geometry>
-        <box size="0.065093 0.066000 0.063730" />
+        <box size="${0.065093 * v1_1_collision_scale} ${0.066000 * v1_1_collision_scale} ${0.063730 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -541,7 +542,7 @@
     <collision>
       <origin xyz="0.036500 0 -0.035500" rpy="0 0 0" />
       <geometry>
-        <box size="0.028000 0.051999 0.082000" />
+        <box size="${0.028000 * v1_1_collision_scale} ${0.051999 * v1_1_collision_scale} ${0.082000 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>
@@ -583,7 +584,7 @@
     <collision>
       <origin xyz="0.020000 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.070000 0.070000 0.070000" />
+        <box size="${0.070000 * v1_1_collision_scale} ${0.070000 * v1_1_collision_scale} ${0.070000 * v1_1_collision_scale}" />
       </geometry>
     </collision>
   </link>

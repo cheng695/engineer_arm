@@ -110,7 +110,7 @@ private:
         return (i < kMaxButtons) && buttons_[i];
     }
 
-    static constexpr size_t kMaxButtons = 10;
+    static constexpr size_t kMaxButtons = 11;
 
     // ---- 摇杆 ----
     std::array<double, 8> axes_{};      //< 摇杆轴原始值 
