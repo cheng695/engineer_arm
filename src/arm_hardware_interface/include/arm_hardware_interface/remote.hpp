@@ -32,8 +32,8 @@ public:
     double y()     const { return -apply_deadzone(axes_[0]); }
     double z()     const { return apply_deadzone(dpad_up_ - dpad_down_); }
     double yaw()   const { return apply_deadzone(dpad_right_ - dpad_left_); }
-    double pitch() const { return -apply_deadzone(axes_[4]); }
-    double roll()  const { return -apply_deadzone(axes_[3]); }
+    double pitch() const { return -apply_deadzone(axes_[3]); }
+    double roll()  const { return -apply_deadzone(axes_[2]); }
 
     // ================================================================
     // 关节速度（摇杆归一化值）
@@ -41,11 +41,11 @@ public:
 
     double j1() const { return -apply_deadzone(axes_[0]); }
     double j2() const { return -apply_deadzone(axes_[1]); }
-    double j3() const { return -apply_deadzone(axes_[4]); }
-    double j4() const { return J7_hold_ ? 0.0 : -apply_deadzone(axes_[3]); }
+    double j3() const { return -apply_deadzone(axes_[3]); }
+    double j4() const { return J7_hold_ ? 0.0 : -apply_deadzone(axes_[2]); }
     double j5() const { return apply_deadzone(dpad_up_ - dpad_down_); }
     double j6() const { return apply_deadzone(dpad_right_ - dpad_left_); }
-    double j7() const { return J7_hold_ ? -apply_deadzone(axes_[3]) : 0.0; }
+    double j7() const { return J7_hold_ ? -apply_deadzone(axes_[2]) : 0.0; }
 
     // ==========================================================
     // 瞬时按键（当前帧状态）
@@ -53,10 +53,10 @@ public:
 
     bool a_btn()         const { return button(0); }
     bool b_btn()         const { return button(1); }
-    bool x_btn()         const { return button(2); }
-    bool y_btn()         const { return button(3); }
-    bool open_gripper()  const { return button(4); }
-    bool close_gripper() const { return button(5); }
+    bool x_btn()         const { return button(3); }
+    bool y_btn()         const { return button(2); }
+    bool open_gripper()  const { return button(5); }
+    bool close_gripper() const { return button(6); }
 
     // ================================================================
     // 边沿触发（上升沿为 true，需在 update() 之后尽快消费）
@@ -110,10 +110,10 @@ private:
         return (i < kMaxButtons) && buttons_[i];
     }
 
-    static constexpr size_t kMaxButtons = 11;
+    static constexpr size_t kMaxButtons = 14;
 
     // ---- 摇杆 ----
-    std::array<double, 8> axes_{};      //< 摇杆轴原始值 
+    std::array<double, 6> axes_{};      //< 摇杆轴原始值 
     double dpad_up_{0.0};               //< D-Pad 上
     double dpad_down_{0.0};             //< D-Pad 下
     double dpad_left_{0.0};             //< D-Pad 左

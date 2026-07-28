@@ -21,9 +21,12 @@ namespace arm_hardware_interface
 hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     const hardware_interface::HardwareInfo& info)
 {
+    // ros2_control 会先把 URDF 中的 hardware/joint 信息解析到 info_。
+    // 后续电机数量、关节名、CAN ID、软限位都依赖这一步成功。
     if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
         return CallbackReturn::ERROR;
 
+    // 初始化 ros2_control 暴露给 controller 的状态/命令缓存。
     init_joint_buffers(info);
     init_joint_limits(info);
     init_mock_joints(info);
@@ -37,7 +40,8 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
         return CallbackReturn::ERROR;
     }
 
-    // 读取 J2/J3 耦合系数（从 xacro 硬件参数）
+    // 读取 J2/J3 耦合系数（从 xacro 硬件参数）。
+    // 这些值是启动时的默认值，on_activate() 中还会再用 YAML 参数覆盖一次。
     auto it_coupling = info_.hardware_parameters.find("j2j3_coupling");
     if (it_coupling != info_.hardware_parameters.end())
         j2j3_coupling_ = std::stod(it_coupling->second);
@@ -70,7 +74,8 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     if (it_j3_gravity_scale != info_.hardware_parameters.end())
         j3_gravity_effort_scale_ = std::stod(it_j3_gravity_scale->second);
 
-    // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）
+    // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）。
+    // 例如只想调试部分关节时，可以让没有列出的关节继续走 Mock。
     auto it = info_.hardware_parameters.find("active_real_joints");
     if (it != info_.hardware_parameters.end() && !it->second.empty())
     {
@@ -102,6 +107,8 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_activate(
 
     int opened = device_collection_.openCANBuses();
 
+    // 某条 CAN 总线打不开时，只禁用挂在这条总线上的真实 I/O。
+    // 这样 can0/can1 其中一条失败时，另一条总线上的电机仍然可以保留反馈。
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         auto motor = device_collection_.getMotor(i);
@@ -163,6 +170,8 @@ std::vector<hardware_interface::CommandInterface> RealArmHardwareInterface::expo
 hardware_interface::return_type RealArmHardwareInterface::read(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
+    // read() 是 ros2_control 的状态更新入口：
+    // 先拿原始电机反馈，再做 Mock 回填、J2/J3 解耦和重力调试量计算。
     read_can_feedback();
     echo_mock_joints(info_);
     apply_j2j3_coupling();
@@ -183,6 +192,7 @@ hardware_interface::return_type RealArmHardwareInterface::write(
 
     if (!motors_enabled_)
     {
+        // 未使能时仍发送当前位置保持命令，主要用于持续收反馈和避免控制目标悬空。
         for (size_t i = 0; i < info_.joints.size(); ++i)
         {
             if (!use_real_joint_io_[i]) continue;
@@ -196,6 +206,7 @@ hardware_interface::return_type RealArmHardwareInterface::write(
 
     if (safe_zero_frames_ > 0)
     {
+        // 刚使能后的短暂暖启动：命令目标强制贴住反馈，避免突然跳到旧目标。
         sync_control_targets_to_feedback();
         send_can_commands();
         safe_zero_frames_--;
@@ -226,6 +237,8 @@ hardware_interface::return_type RealArmHardwareInterface::write(
     {
         if (!vel_mode_active_)
         {
+            // 速度模式下硬件接口自己对速度积分成位置目标，再发 MIT 位置命令。
+            // 初次进入时从当前命令位置开始积分，避免目标突变。
             integrated_pos_ = hw_commands_pos_;
             RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[VEL_MODE] 进入速度模式");
         }
@@ -273,6 +286,8 @@ bool RealArmHardwareInterface::init_motors()
 
         uint32_t id = std::stoi(it_id->second);
 
+        // 每个关节在 xacro 里声明电机型号、kp/kd、CAN 总线和反馈 ID。
+        // 这里根据型号创建对应的达妙 MIT 电机对象。
         auto it_m = j.parameters.find("motor_model");
         std::string model = (it_m != j.parameters.end()) ? it_m->second : "J4310";
         float kp = 50.0f, kd = 1.0f;
@@ -319,7 +334,8 @@ void RealArmHardwareInterface::sync_control_gains()
     if (!internal_node_)
         return;
 
-    // j2j3 coupling parameters
+    // J2/J3 解耦参数：这些参数通常从 control_gains.yaml 来，
+    // 用于把 J3 电机侧角度和关节侧角度互相转换。
     double coupling = j2j3_coupling_;
     internal_node_->get_parameter_or("j2j3_coupling", coupling, coupling);
     if (coupling != j2j3_coupling_)
@@ -402,6 +418,7 @@ void RealArmHardwareInterface::sync_control_gains()
             internal_node_->get_parameter_or(prefix + "kd", kd, kd);
         };
 
+        // 先按关节名读取；夹爪再额外兼容 arm_control_gains.gripper 这个别名。
         read_gains(name);
         if (name == "joint_right_finger")
             read_gains("gripper");
@@ -463,6 +480,8 @@ void RealArmHardwareInterface::refresh_feedback_before_enable()
 {
     for (int n = 0; n < 3; ++n)
     {
+        // 使能前先用当前反馈刷新命令目标。
+        // 这样电机一使能不会追逐上一次 controller 残留的位置命令。
         for (size_t i = 0; i < info_.joints.size(); ++i)
         {
             if (!use_real_joint_io_[i]) continue;
@@ -481,6 +500,8 @@ void RealArmHardwareInterface::refresh_feedback_before_enable()
 
 void RealArmHardwareInterface::sync_control_targets_to_feedback()
 {
+    // 把所有控制器内部目标同步到当前反馈。
+    // enable/disable/hold/暖启动都会调用它，核心目的都是消除旧目标。
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         hw_commands_pos_[i] = hw_states_pos_[i];
@@ -550,6 +571,8 @@ bool RealArmHardwareInterface::all_real_motors_feedback_ok(
     const std::vector<size_t>& feedback_counts_before,
     std::string* detail) const
 {
+    // 判断本轮使能后每个真实电机是否都返回了新反馈，并且反馈状态为 enabled。
+    // detail 用于日志里指出具体是哪一个关节缺反馈或状态不对。
     bool ok = true;
     std::ostringstream oss;
     size_t motor_idx = 0;
@@ -591,6 +614,7 @@ bool RealArmHardwareInterface::clear_errors_enable_and_wait()
     {
         const auto counts_before = real_motor_feedback_counts();
 
+        // 达妙电机需要先清错误位再使能；之后轮询反馈确认 status 进入 enabled。
         device_collection_.clearAllErrors();
         std::this_thread::sleep_for(kCommandGap);
         device_collection_.enableAll();
@@ -664,6 +688,8 @@ void RealArmHardwareInterface::send_can_commands()
 
     if ((gravity_only || gravity_assist) && gravity_compensator_.is_initialized())
     {
+        // 重力补偿输出的是关节侧力矩，这里先乘全局系数。
+        // J3 还额外支持独立系数，方便只微调同步带耦合后的 J3 重力前馈。
         grav = gravity_compensator_.compute(hw_states_pos_);
         for (double& tau : grav)
             tau *= gravity_effort_scale_;
@@ -699,37 +725,30 @@ void RealArmHardwareInterface::send_can_commands()
             (i < grav.size() ? grav[i] : 0.0);
         if (i == kJ3Index && use_real_joint_io_[kJ2Index])
         {
-            const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
+            // J3 关节目标 -> J3 电机目标：
+            // controller 看到的是解耦后的关节角，发给电机前要把 J2 引入的耦合量反算回去。
             const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
             const double j2_vel = arm_gravity_only ? 0.0 : hw_commands_vel_[kJ2Index];
             const double correction = j2j3_poly_correction(j2_pos);
             const double derivative = j2j3_poly_derivative(j2_pos);
-            if (j2j3_scale_mode_is_multiply())
-            {
-                pos = (pos - correction) / j3_scale;
-                vel = (vel - derivative * j2_vel) / j3_scale;
-                eff *= j3_scale;
-            }
-            else
-            {
-                pos = j3_scale * pos - correction;
-                vel = j3_scale * vel - derivative * j2_vel;
-                eff /= j3_scale;
-            }
+            pos -= correction;
+            vel -= derivative * j2_vel;
         }
         if (i == kJ2Index && use_real_joint_io_[kJ3Index])
         {
-            const double j3_scale = std::abs(j2j3_j3_scale_) > 1e-9 ? j2j3_j3_scale_ : 1.0;
+            // J3 电机力矩会通过同步带反作用到 J2 电机侧；
+            // 这里把 J3 的命令/重力力矩按解耦导数映射回 J2，保证力矩通道一致。
             const double j3_eff =
                 (arm_gravity_only ? 0.0 : hw_commands_eff_[kJ3Index]) +
                 (kJ3Index < grav.size() ? grav[kJ3Index] : 0.0);
             const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
             const double derivative = j2j3_poly_derivative(j2_pos);
-            eff += (j2j3_scale_mode_is_multiply() ? derivative : derivative / j3_scale) * j3_eff;
+            eff += derivative * j3_eff;
         }
         cmd_pos[motor_idx] = pos;
         cmd_vel[motor_idx] = vel;
         cmd_eff[motor_idx] = eff;
+        // gravity_only 模式只输出重力前馈，不让位置环继续拉目标，所以 kp/kd 置 0。
         cmd_kp.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kp());
         cmd_kd.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kd());
 

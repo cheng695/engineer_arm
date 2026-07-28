@@ -22,6 +22,21 @@ def generate_launch_description():
     with open(control_gains_path, "r") as f:
         control_gains = yaml.safe_load(f)
     default_j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
+    j2j3_args = {
+        key: str(control_gains.get(key, default))
+        for key, default in {
+            "j2j3_up_poly_a3": 0.0,
+            "j2j3_up_poly_a2": 0.0,
+            "j2j3_up_poly_a1": 0.0,
+            "j2j3_up_poly_a0": 0.0,
+            "j2j3_down_poly_a3": 0.0,
+            "j2j3_down_poly_a2": 0.0,
+            "j2j3_down_poly_a1": 0.0,
+            "j2j3_down_poly_a0": 0.0,
+            "j2j3_direction_deadband": 0.02,
+            "j2j3_direction_smoothing": 0.02,
+        }.items()
+    }
 
     # 启动参数（对齐 openarm 命名习惯）
     robot_version = LaunchConfiguration("robot", default="v1_0")
@@ -56,6 +71,7 @@ def generate_launch_description():
             f"use_mock_hardware:={use_mock_hardware.perform(context)}",
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
             f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
+            *[f"{key}:={value}" for key, value in j2j3_args.items()],
             f"j2j3_j3_gravity_effort_scale:={j3_gravity_scale}",
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
@@ -79,6 +95,7 @@ def generate_launch_description():
             " use_mock_hardware:=", use_mock_hardware,
             " gravity_compensation_mode:=", gravity_compensation_mode,
             " gravity_effort_scale:=", gravity_effort_scale,
+            *sum(([f" {key}:=", value] for key, value in j2j3_args.items()), []),
             " j2j3_j3_gravity_effort_scale:=", j2j3_j3_gravity_effort_scale,
             " active_real_joints:=", active_real_joints,
             " can0_interface:=", can0_interface,

@@ -6,7 +6,7 @@ namespace remote
 
 bool Remote::update(const sensor_msgs::msg::Joy& msg)
 {
-    if (msg.axes.size() < 8 || msg.buttons.size() < kMaxButtons)
+    if (msg.axes.size() < 6 || msg.buttons.size() < 14)
     {
         return false;
     }
@@ -24,19 +24,18 @@ bool Remote::update(const sensor_msgs::msg::Joy& msg)
     axes_[4] = static_cast<double>(msg.axes[4]);
     axes_[5] = static_cast<double>(msg.axes[5]);
     axes_[6] = static_cast<double>(msg.axes[6]);
-    axes_[7] = static_cast<double>(msg.axes[7]);
 
     // ---- 解析按钮 ----
-    enable_pressed_ = msg.buttons[6];
-    stop_pressed_   = msg.buttons[7];
-    change_pressed_ = msg.buttons[10];
-    J7_hold_        = msg.buttons[9];
+    enable_pressed_ = msg.buttons[9];
+    stop_pressed_   = msg.buttons[10];
+    change_pressed_ = msg.buttons[13];
+    J7_hold_        = msg.buttons[12];
 
     // 十字键（axes[6]左/右=±1, axes[7]上/下=±1, 不按=0）
-    dpad_up_    = (msg.axes[7] > 0.5) ? 1.0 : 0.0;
-    dpad_down_  = (msg.axes[7] < -0.5) ? 1.0 : 0.0;
-    dpad_left_  = (msg.axes[6] > 0.5) ? 1.0 : 0.0;
-    dpad_right_ = (msg.axes[6] < -0.5) ? 1.0 : 0.0;
+    dpad_up_    = (msg.axes[5] > 0.5) ? 1.0 : 0.0;
+    dpad_down_  = (msg.axes[5] < -0.5) ? 1.0 : 0.0;
+    dpad_left_  = (msg.axes[4] > 0.5) ? 1.0 : 0.0;
+    dpad_right_ = (msg.axes[4] < -0.5) ? 1.0 : 0.0;
 
     // ---- 缓存原始按钮数组 ----
     for (size_t i = 0; i < std::min(msg.buttons.size(), kMaxButtons); ++i)

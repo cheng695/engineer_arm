@@ -142,6 +142,16 @@ def residual_deg(
     return fk_pitch_deg - corrected_imu_pitch_deg
 
 
+def residual_hold_j3_rad(
+    params: np.ndarray,
+    raw_j2: np.ndarray,
+    raw_j3: np.ndarray,
+    target_j3: float,
+) -> np.ndarray:
+    joint3_decoupled = decouple_joint3(raw_j2, raw_j3, params)
+    return joint3_decoupled - target_j3
+
+
 def r_squared(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     ss_res = float(np.sum((y_pred - y_true) ** 2))
     ss_tot = float(np.sum((y_true - np.mean(y_true)) ** 2))
@@ -186,6 +196,52 @@ def save_fit_plot(
     ax_residual.scatter(raw_j2, residual, s=18, color="tab:purple", alpha=0.75)
     ax_residual.set_xlabel("joint2 raw (rad)")
     ax_residual.set_ylabel("Residual (deg)")
+    ax_residual.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(plot_path, dpi=160)
+    plt.close(fig)
+    print(f"[SAVE] plot -> {plot_path}")
+
+
+def save_hold_j3_plot(
+    plot_path: Path,
+    raw_j2: np.ndarray,
+    raw_j3: np.ndarray,
+    joint3_decoupled: np.ndarray,
+    target_j3: float,
+    residual_rad: np.ndarray,
+    r2: float,
+):
+    plot_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import os
+
+        os.environ.setdefault("MPLCONFIGDIR", str(plot_path.parent / ".matplotlib"))
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("[WARN] matplotlib is not installed; skip fit plot")
+        return
+
+    order = np.argsort(raw_j2)
+
+    fig, (ax_fit, ax_residual) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
+    ax_fit.scatter(raw_j2, raw_j3, s=18, label="raw J3", alpha=0.55)
+    ax_fit.plot(raw_j2[order], joint3_decoupled[order], color="tab:red", label="decoupled J3")
+    ax_fit.axhline(target_j3, color="black", linewidth=1.0, alpha=0.7, label="target J3")
+    ax_fit.set_ylabel("J3 (rad)")
+    ax_fit.set_title(f"J2/J3 hold-J3 fit, R^2={r2:.6f}")
+    ax_fit.grid(True, alpha=0.3)
+    ax_fit.legend()
+
+    ax_residual.axhline(0.0, color="black", linewidth=1.0, alpha=0.6)
+    ax_residual.scatter(raw_j2, residual_rad, s=18, color="tab:purple", alpha=0.75)
+    ax_residual.set_xlabel("joint2 raw (rad)")
+    ax_residual.set_ylabel("J3 residual (rad)")
     ax_residual.grid(True, alpha=0.3)
 
     fig.tight_layout()
@@ -330,10 +386,79 @@ def fit(args):
                 "a3*raw_joint2^3 + a2*raw_joint2^2 + a1*raw_joint2 + a0; "
                 "fk_pitch_deg = rad2deg(joint3_decoupled - raw_joint2)"
             )
+        residual_for_metrics = residual
+        metric_unit = "deg"
+        metric_target = corrected_imu_pitch_deg
+        metric_prediction = fk_pitch_deg
+    elif model == "hold-j3":
+        initial_params = np.array(args.initial_params, dtype=float)
+        if args.target_j3 == "first":
+            target_j3 = float(raw_j3[0])
+        elif args.target_j3 == "mean":
+            target_j3 = float(np.mean(raw_j3))
+        else:
+            target_j3 = float(args.target_j3)
+
+        def residual_fn(params):
+            return residual_hold_j3_rad(params, raw_j2, raw_j3, target_j3)
+
+        optimizer = args.optimizer.lower()
+        if optimizer in ("lm", "levenberg-marquardt", "levenberg_marquardt"):
+            if len(raw_j2) < len(initial_params):
+                raise SystemExit("Levenberg-Marquardt needs at least as many samples as parameters")
+            result = least_squares(residual_fn, initial_params, method="lm", max_nfev=args.max_iter)
+            params = result.x
+            success = bool(result.success)
+            message = str(result.message)
+            iterations = int(result.nfev)
+        elif optimizer in ("lbfgs", "l-bfgs", "l-bfgs-b"):
+            def objective(params):
+                r = residual_fn(params)
+                return 0.5 * float(np.dot(r, r))
+
+            result = minimize(
+                objective,
+                initial_params,
+                method="L-BFGS-B",
+                options={"maxiter": args.max_iter, "ftol": args.tolerance},
+            )
+            params = result.x
+            success = bool(result.success)
+            message = str(result.message)
+            iterations = int(result.nit)
+        elif optimizer == "adam":
+            params, iterations = run_adam(
+                residual_fn,
+                initial_params,
+                args.learning_rate,
+                args.max_iter,
+                args.tolerance,
+            )
+            success = True
+            message = "Adam finished"
+        else:
+            raise SystemExit(f"unsupported optimizer: {args.optimizer}")
+
+        residual = residual_fn(params)
+        joint3_decoupled = decouple_joint3(raw_j2, raw_j3, params)
+        fk_pitch_deg = link3_pitch_fk_deg(raw_j2, joint3_decoupled)
+        coeff_names = ["a3", "a2", "a1", "a0"]
+        model_text = (
+            "joint3_decoupled = raw_joint3 + "
+            "a3*raw_joint2^3 + a2*raw_joint2^2 + a1*raw_joint2 + a0; "
+            "target: joint3_decoupled = constant"
+        )
+        residual_for_metrics = residual
+        metric_unit = "rad"
+        metric_target = np.full_like(raw_j3, target_j3)
+        metric_prediction = joint3_decoupled
     else:
         raise SystemExit(f"unsupported model: {args.model}")
 
-    r2 = r_squared(corrected_imu_pitch_deg, fk_pitch_deg)
+    r2 = math.nan if model == "hold-j3" else r_squared(metric_target, metric_prediction)
+    rmse = float(np.sqrt(np.mean(residual_for_metrics**2)))
+    max_abs_error = float(np.max(np.abs(residual_for_metrics)))
+    mean_error = float(np.mean(residual_for_metrics))
 
     fit_result = {
         "source_csv": str(csv_path),
@@ -349,13 +474,20 @@ def fit(args):
         "coeff": params.tolist(),
         "initial_coeff": initial_params.tolist(),
         "sample_count": int(len(raw_j2)),
-        "rmse_deg": float(np.sqrt(np.mean(residual**2))),
+        "rmse": rmse,
+        "rmse_unit": metric_unit,
+        "rmse_deg": float(math.degrees(rmse)) if metric_unit == "rad" else rmse,
         "r_squared": r2,
-        "max_abs_error_deg": float(np.max(np.abs(residual))),
-        "mean_error_deg": float(np.mean(residual)),
+        "max_abs_error": max_abs_error,
+        "max_abs_error_unit": metric_unit,
+        "max_abs_error_deg": float(math.degrees(max_abs_error)) if metric_unit == "rad" else max_abs_error,
+        "mean_error": mean_error,
+        "mean_error_unit": metric_unit,
+        "mean_error_deg": float(math.degrees(mean_error)) if metric_unit == "rad" else mean_error,
         "imu_sign": args.imu_sign,
         "imu_offset_deg": args.imu_offset_deg,
         "imu_pitch_unit": args.imu_pitch_unit,
+        "target_j3_rad": target_j3 if model == "hold-j3" else None,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -366,9 +498,19 @@ def fit(args):
     print(f"  model: {model_text}")
     print(f"  optimizer: {optimizer} ({message})")
     print(f"  coeff {coeff_names}: {np.array2string(params, precision=10)}")
-    print(f"  rmse: {fit_result['rmse_deg']:.8f} deg")
+    if model == "hold-j3":
+        print(f"  target_j3: {target_j3:.10f} rad")
+        print(f"  rmse: {fit_result['rmse']:.8f} rad ({fit_result['rmse_deg']:.8f} deg)")
+    else:
+        print(f"  rmse: {fit_result['rmse_deg']:.8f} deg")
     print(f"  r_squared: {r2:.8f}")
-    print(f"  max_abs_error: {fit_result['max_abs_error_deg']:.8f} deg")
+    if model == "hold-j3":
+        print(
+            f"  max_abs_error: {fit_result['max_abs_error']:.8f} rad "
+            f"({fit_result['max_abs_error_deg']:.8f} deg)"
+        )
+    else:
+        print(f"  max_abs_error: {fit_result['max_abs_error_deg']:.8f} deg")
 
     output_path = Path(args.output_json).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -390,7 +532,7 @@ def fit(args):
                     "fk_pitch_deg",
                     "imu_pitch_deg",
                     "imu_pitch_corrected_deg",
-                    "residual_deg",
+                    "residual",
                 ]
             )
             for values in zip(
@@ -400,21 +542,32 @@ def fit(args):
                 fk_pitch_deg,
                 imu_pitch_deg,
                 corrected_imu_pitch_deg,
-                residual,
+                residual_for_metrics,
             ):
                 writer.writerow(values)
         print(f"[SAVE] predictions -> {prediction_path}")
 
     if args.plot_png:
         plot_path = Path(args.plot_png).expanduser().resolve()
-        save_fit_plot(
-            plot_path,
-            raw_j2,
-            corrected_imu_pitch_deg,
-            fk_pitch_deg,
-            residual,
-            r2,
-        )
+        if model == "hold-j3":
+            save_hold_j3_plot(
+                plot_path,
+                raw_j2,
+                raw_j3,
+                joint3_decoupled,
+                target_j3,
+                residual,
+                r2,
+            )
+        else:
+            save_fit_plot(
+                plot_path,
+                raw_j2,
+                corrected_imu_pitch_deg,
+                fk_pitch_deg,
+                residual,
+                r2,
+            )
 
     return fit_result
 
@@ -422,8 +575,7 @@ def fit(args):
 def parse_args():
     parser = argparse.ArgumentParser(
         description=(
-            "Fit a cubic J2/J3 decoupling polynomial by minimizing "
-            "Link3 FK pitch minus IMU pitch."
+            "Fit a cubic J2/J3 decoupling polynomial."
         )
     )
     parser.add_argument(
@@ -441,10 +593,18 @@ def parse_args():
     parser.add_argument("--imu-pitch-column", default="imu_pitch_deg")
     parser.add_argument(
         "--model",
-        default="fk-poly",
-        choices=["fk-poly"],
+        default="hold-j3",
+        choices=["fk-poly", "hold-j3"],
         help=(
-            "Fit decoupled joint3 polynomial, then compare FK pitch with IMU pitch."
+            "fk-poly compares FK pitch with IMU pitch; hold-j3 keeps decoupled J3 constant."
+        ),
+    )
+    parser.add_argument(
+        "--target-j3",
+        default="first",
+        help=(
+            "Target J3 rad for --model hold-j3. Use 'first' for the first sample, "
+            "'mean' for sample mean, or a numeric rad value."
         ),
     )
     parser.add_argument(

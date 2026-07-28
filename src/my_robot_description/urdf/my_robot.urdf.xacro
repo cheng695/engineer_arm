@@ -8,6 +8,16 @@
   <xacro:arg name="use_mock_hardware" default="false"/>
   <xacro:arg name="gravity_compensation_mode" default="off"/>
   <xacro:arg name="gravity_effort_scale" default="0.0"/>
+  <xacro:arg name="j2j3_up_poly_a3" default="0.0"/>
+  <xacro:arg name="j2j3_up_poly_a2" default="0.0"/>
+  <xacro:arg name="j2j3_up_poly_a1" default="0.0"/>
+  <xacro:arg name="j2j3_up_poly_a0" default="0.0"/>
+  <xacro:arg name="j2j3_down_poly_a3" default="0.0"/>
+  <xacro:arg name="j2j3_down_poly_a2" default="0.0"/>
+  <xacro:arg name="j2j3_down_poly_a1" default="0.0"/>
+  <xacro:arg name="j2j3_down_poly_a0" default="0.0"/>
+  <xacro:arg name="j2j3_direction_deadband" default="0.02"/>
+  <xacro:arg name="j2j3_direction_smoothing" default="0.02"/>
   <xacro:arg name="j2j3_j3_gravity_effort_scale" default="1.0"/>
   <xacro:arg name="active_real_joints" default=""/>
   <xacro:arg name="can0_interface" default="can0"/>
@@ -31,6 +41,16 @@
     use_mock_hardware="$(arg use_mock_hardware)"
     gravity_compensation_mode="$(arg gravity_compensation_mode)"
     gravity_effort_scale="$(arg gravity_effort_scale)"
+    j2j3_up_poly_a3="$(arg j2j3_up_poly_a3)"
+    j2j3_up_poly_a2="$(arg j2j3_up_poly_a2)"
+    j2j3_up_poly_a1="$(arg j2j3_up_poly_a1)"
+    j2j3_up_poly_a0="$(arg j2j3_up_poly_a0)"
+    j2j3_down_poly_a3="$(arg j2j3_down_poly_a3)"
+    j2j3_down_poly_a2="$(arg j2j3_down_poly_a2)"
+    j2j3_down_poly_a1="$(arg j2j3_down_poly_a1)"
+    j2j3_down_poly_a0="$(arg j2j3_down_poly_a0)"
+    j2j3_direction_deadband="$(arg j2j3_direction_deadband)"
+    j2j3_direction_smoothing="$(arg j2j3_direction_smoothing)"
     j2j3_j3_gravity_effort_scale="$(arg j2j3_j3_gravity_effort_scale)"
     active_real_joints="$(arg active_real_joints)"
     can0_interface="$(arg can0_interface)"

@@ -40,8 +40,8 @@ public:
         use_servo_ = node_->get_parameter("use_servo").as_bool();
         node_->declare_parameter("arm_version", "v1_0");
         const auto arm_version = node_->get_parameter("arm_version").as_string();
-        node_->declare_parameter("gripper_min_angle", 0.0);
-        node_->declare_parameter("gripper_max_angle", 1.2);
+        node_->declare_parameter("gripper_min_angle", -1.45);
+        node_->declare_parameter("gripper_max_angle", 0.0);
         node_->declare_parameter("gripper_speed", 0.8);
         gripper_min_angle_ = node_->get_parameter("gripper_min_angle").as_double();
         gripper_max_angle_ = node_->get_parameter("gripper_max_angle").as_double();
@@ -162,12 +162,12 @@ private:
         auto msg = std::make_unique<TwistStamped>();
         msg->header.stamp = node_->now();
         msg->header.frame_id = command_frame_id_;
-        msg->twist.linear.x  = -remote_.x()    * 0.5;
-        msg->twist.linear.y  = -remote_.y()    * 0.5;
-        msg->twist.linear.z  = remote_.z()     * 0.5;
-        msg->twist.angular.x = remote_.roll()  * 1.5;
-        msg->twist.angular.y = remote_.pitch() * 1.5;
-        msg->twist.angular.z = -remote_.yaw()  * 1.5;
+        msg->twist.linear.x  = -remote_.x()    * 0.3;
+        msg->twist.linear.y  = -remote_.y()    * 0.3;
+        msg->twist.linear.z  = remote_.z()     * 0.3;
+        msg->twist.angular.x = remote_.roll()  * 1.0;
+        msg->twist.angular.y = remote_.pitch() * 1.0;
+        msg->twist.angular.z = -remote_.yaw()  * 1.0;
 
         // 始终发 DLS
         auto dls_msg = std::make_unique<TwistStamped>(*msg);
@@ -402,8 +402,8 @@ private:
     rclcpp::Publisher<Float64MultiArray>::SharedPtr vel_pub_;
     rclcpp::Publisher<Float64MultiArray>::SharedPtr joint_pos_pub_;
     rclcpp::Publisher<Float64MultiArray>::SharedPtr gripper_cmd_pub_;
-    double gripper_min_angle_{0.0};
-    double gripper_max_angle_{1.2};
+    double gripper_min_angle_{-4.8};
+    double gripper_max_angle_{0.0};
     double gripper_speed_{0.8};
     double gripper_target_angle_{0.0};
     bool gripper_target_initialized_{false};

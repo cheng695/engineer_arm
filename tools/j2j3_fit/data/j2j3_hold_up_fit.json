@@ -1,5 +1,5 @@
 {
-  "source_csv": "/home/whc/engineer_whc/tools/j2j3_fit/sample/down.csv",
+  "source_csv": "/home/whc/engineer_whc/tools/j2j3_fit/sample/up.csv",
   "columns": {
     "joint2": "I2",
     "joint3": "I3",
@@ -19,10 +19,10 @@
     "a0"
   ],
   "coeff": [
-    -0.1750399217496682,
-    0.35688728461378066,
-    0.8257693612509485,
-    0.2379728080480324
+    -0.25220169019643496,
+    0.2727246110498371,
+    0.9715433592930741,
+    -1.1654617560068221
   ],
   "initial_coeff": [
     0.0,
@@ -30,20 +30,20 @@
     1.0,
     0.0
   ],
-  "sample_count": 2946,
-  "rmse": 0.016183274203169763,
+  "sample_count": 4251,
+  "rmse": 0.014063122295617349,
   "rmse_unit": "rad",
-  "rmse_deg": 0.9272333105445678,
+  "rmse_deg": 0.8057575543152038,
   "r_squared": NaN,
-  "max_abs_error": 0.057488994116869696,
+  "max_abs_error": 0.060540039837146044,
   "max_abs_error_unit": "rad",
-  "max_abs_error_deg": 3.293876731349053,
-  "mean_error": 8.28656567065231e-12,
+  "max_abs_error_deg": 3.46868877422234,
+  "mean_error": -7.145542684955136e-17,
   "mean_error_unit": "rad",
-  "mean_error_deg": 4.747852395863719e-10,
+  "mean_error_deg": -4.094094381785077e-15,
   "imu_sign": 1.0,
   "imu_offset_deg": 0.0,
   "imu_pitch_unit": "deg",
-  "target_j3_rad": 1.532412,
-  "created_at": "2026-07-27 15:50:00"
+  "target_j3_rad": -0.004935,
+  "created_at": "2026-07-27 15:47:52"
 }

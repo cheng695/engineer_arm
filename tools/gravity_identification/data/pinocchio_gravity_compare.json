@@ -1,0 +1,177 @@
+{
+  "created_at": "2026-07-28 13:03:33",
+  "csv": "/home/whc/engineer_whc/tools/gravity_identification/data/gravity_static_samples.csv",
+  "urdf": "/home/whc/engineer_whc/src/arm_description/urdf/v1_1_full_robot.urdf",
+  "sample_count": 22,
+  "joints": [
+    "joint1",
+    "joint2",
+    "joint3",
+    "joint4",
+    "joint5",
+    "joint6",
+    "joint7"
+  ],
+  "effort_sign": 1.0,
+  "pinocchio_model": {
+    "nq": 9,
+    "nv": 9
+  },
+  "raw_pinocchio_metrics": {
+    "overall_rmse_nm": 0.04893380659839557,
+    "overall_mae_nm": 0.03322833631741994,
+    "per_joint": {
+      "joint1": {
+        "rmse_nm": 8.362562523225854e-17,
+        "mae_nm": 6.071911181132065e-17,
+        "max_abs_nm": 2.634058548620469e-16,
+        "measured_span_nm": 4.332046703929533e-16,
+        "nrmse_by_span": NaN,
+        "r_squared": NaN
+      },
+      "joint2": {
+        "rmse_nm": 0.03269100266536204,
+        "mae_nm": 0.01698541038788546,
+        "max_abs_nm": 0.08406723918960424,
+        "measured_span_nm": 13.28986491719954,
+        "nrmse_by_span": 0.0024598446161069585,
+        "r_squared": 0.9999255932087131
+      },
+      "joint3": {
+        "rmse_nm": 0.03269100266536214,
+        "mae_nm": 0.01698541038788552,
+        "max_abs_nm": 0.08406723918960424,
+        "measured_span_nm": 4.481231240724422,
+        "nrmse_by_span": 0.007295093894792497,
+        "r_squared": 0.998929534924474
+      },
+      "joint4": {
+        "rmse_nm": 0.07822393169685343,
+        "mae_nm": 0.07328878569782482,
+        "max_abs_nm": 0.09110556244439742,
+        "measured_span_nm": 0.7683354947427641,
+        "nrmse_by_span": 0.10180960300817876,
+        "r_squared": 0.8671103481950965
+      },
+      "joint5": {
+        "rmse_nm": 0.02905072835789546,
+        "mae_nm": 0.014386419519924266,
+        "max_abs_nm": 0.08399273463397672,
+        "measured_span_nm": 1.4168958251917272,
+        "nrmse_by_span": 0.02050307993106301,
+        "r_squared": 0.9958293824431101
+      },
+      "joint6": {
+        "rmse_nm": 0.041281780102606976,
+        "mae_nm": 0.03548489465874874,
+        "max_abs_nm": 0.07226735242415439,
+        "measured_span_nm": 0.4607695989592585,
+        "nrmse_by_span": 0.08959310726195964,
+        "r_squared": 0.9238196208154921
+      },
+      "joint7": {
+        "rmse_nm": 0.0771822843031523,
+        "mae_nm": 0.07546743356967076,
+        "max_abs_nm": 0.09110470200982801,
+        "measured_span_nm": 0.05473488044991839,
+        "nrmse_by_span": 1.410111498713749,
+        "r_squared": -18.48644524848195
+      }
+    }
+  },
+  "scale_bias_fit": {
+    "model": "tau_measured[j] ~= scale[j] * tau_pinocchio[j] + bias[j]",
+    "params_by_joint": {
+      "joint1": {
+        "scale": 6.735159899617349e-37,
+        "bias": 1.4676326037384842e-18
+      },
+      "joint2": {
+        "scale": 1.0017052105920783,
+        "bias": 0.012015795905955017
+      },
+      "joint3": {
+        "scale": 0.9936294176670296,
+        "bias": -0.057684819479920935
+      },
+      "joint4": {
+        "scale": 1.113510074129707,
+        "bias": -0.08503066135089335
+      },
+      "joint5": {
+        "scale": 0.9639811980755624,
+        "bias": -0.05328188506917731
+      },
+      "joint6": {
+        "scale": 1.0219157983451923,
+        "bias": 0.01569712708579235
+      },
+      "joint7": {
+        "scale": 1.8866775489387448,
+        "bias": -0.07506732302830141
+      }
+    },
+    "metrics": {
+      "overall_rmse_nm": 0.023352854726256745,
+      "overall_mae_nm": 0.016409664720577904,
+      "per_joint": {
+        "joint1": {
+          "rmse_nm": 9.610649701246073e-17,
+          "mae_nm": 7.625836201897168e-17,
+          "max_abs_nm": 2.4105811513363014e-16,
+          "measured_span_nm": 4.332046703929533e-16,
+          "nrmse_by_span": NaN,
+          "r_squared": NaN
+        },
+        "joint2": {
+          "rmse_nm": 0.02756063841623821,
+          "mae_nm": 0.022682417800795177,
+          "max_abs_nm": 0.06011217066864116,
+          "measured_span_nm": 13.28986491719954,
+          "nrmse_by_span": 0.0020738087699123,
+          "r_squared": 0.9999471147403242
+        },
+        "joint3": {
+          "rmse_nm": 0.027571740704683153,
+          "mae_nm": 0.02301205486608916,
+          "max_abs_nm": 0.05768100214962235,
+          "measured_span_nm": 4.481231240724422,
+          "nrmse_by_span": 0.006152715453315012,
+          "r_squared": 0.9992385447385745
+        },
+        "joint4": {
+          "rmse_nm": 0.016707256982739997,
+          "mae_nm": 0.010949437602868895,
+          "max_abs_nm": 0.05525859472018421,
+          "measured_span_nm": 0.7683354947427641,
+          "nrmse_by_span": 0.02174474184396951,
+          "r_squared": 0.9939379126823189
+        },
+        "joint5": {
+          "rmse_nm": 0.018964885208897355,
+          "mae_nm": 0.012067827380623447,
+          "max_abs_nm": 0.05067089304563366,
+          "measured_span_nm": 1.4168958251917272,
+          "nrmse_by_span": 0.013384812681151857,
+          "r_squared": 0.9982225935457456
+        },
+        "joint6": {
+          "rmse_nm": 0.0375444363062383,
+          "mae_nm": 0.03291458944915063,
+          "max_abs_nm": 0.08380398581883969,
+          "measured_span_nm": 0.4607695989592585,
+          "nrmse_by_span": 0.08148201702334533,
+          "r_squared": 0.9369888400986689
+        },
+        "joint7": {
+          "rmse_nm": 0.015789777934964888,
+          "mae_nm": 0.013241325944517964,
+          "max_abs_nm": 0.03128154259448925,
+          "measured_span_nm": 0.05473488044991839,
+          "nrmse_by_span": 0.2884774353241221,
+          "r_squared": 0.18445221939782208
+        }
+      }
+    }
+  }
+}
