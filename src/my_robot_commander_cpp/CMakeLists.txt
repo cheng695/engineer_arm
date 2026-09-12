@@ -7,36 +7,32 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(moveit_servo REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
-find_package(control_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(arm_hardware_interface REQUIRED)
 
-add_executable(joy_to_servo_node
+add_executable(teleop_command_node
   src/commander_template.cpp
 )
-target_include_directories(joy_to_servo_node PUBLIC
+target_include_directories(teleop_command_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_include_directories(joy_to_servo_node PRIVATE
+target_include_directories(teleop_command_node PRIVATE
   ${arm_hardware_interface_INCLUDE_DIRS}
 )
 
-ament_target_dependencies(joy_to_servo_node
+ament_target_dependencies(teleop_command_node
   rclcpp
-  moveit_servo
   moveit_ros_planning_interface
-  control_msgs
   geometry_msgs
   sensor_msgs
   std_msgs
   arm_hardware_interface
 )
 
-install(TARGETS joy_to_servo_node
+install(TARGETS teleop_command_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config launch

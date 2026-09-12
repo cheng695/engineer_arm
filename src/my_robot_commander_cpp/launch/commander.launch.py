@@ -34,29 +34,6 @@ def variant_config_dir(moveit_config_pkg, robot_version):
     return variant_dir if os.path.isdir(variant_dir) else os.path.join(moveit_config_pkg, "config")
 
 
-def variant_name(version):
-    normalized = version.lower().replace(".", "_")
-    variant_names = {
-        "v1_0": "V1.0",
-        "1_0": "V1.0",
-        "v1_1": "V1.1",
-        "1_1": "V1.1",
-    }
-    return variant_names.get(normalized, "V1.0")
-
-
-def load_joint_control_directions(commander_pkg, arm_version):
-    profiles_path = os.path.join(commander_pkg, "config", "joint_control_profiles.yaml")
-    profiles_yaml = load_yaml(profiles_path) or {}
-    profiles = profiles_yaml.get("joint_control_profiles", {})
-    profile = profiles.get(variant_name(arm_version), profiles.get("V1.0", {}))
-    directions = profile.get("joint_control_directions", [1.0] * 7)
-    if not isinstance(directions, list) or len(directions) != 7:
-        raise RuntimeError(
-            f"Invalid joint_control_directions in {profiles_path} for arm_version={arm_version}: {directions}")
-    return [float(direction) for direction in directions]
-
-
 def generate_launch_description():
     robot_version = LaunchConfiguration("robot", default="v1_0")
     arm_version = LaunchConfiguration("arm_version", default=robot_version)
@@ -68,7 +45,7 @@ def generate_launch_description():
     joy_autorepeat_rate = LaunchConfiguration("joy_autorepeat_rate", default="100.0")
     joy_coalesce_interval = LaunchConfiguration("joy_coalesce_interval", default="0.01")
 
-    # robot_description（Servo 需要）
+    # robot_description（MoveIt 固定点位规划需要）
     robot_description_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]), " ",
         PathJoinSubstitution([FindPackageShare("my_robot_description"), "urdf", "my_robot.urdf.xacro"]),
@@ -109,27 +86,21 @@ def generate_launch_description():
         kinematics_yaml = load_yaml(kinematics_path)
         robot_description_kinematics = {"robot_description_kinematics": kinematics_yaml}
 
-        # Servo 参数
-        servo_path = os.path.join(selected_config_dir, "servo_config.yaml")
-        servo_yaml = load_yaml(servo_path)
-        servo_params = {}
-        if servo_yaml and "moveit_servo" in servo_yaml:
-            servo_params = {"moveit_servo": servo_yaml["moveit_servo"]["ros__parameters"]}
-
-        use_servo_str = context.launch_configurations.get("use_servo", "false")
-        use_servo_val = use_servo_str.lower() in ("true", "1", "yes", "on")
         selected_arm_version = arm_version.perform(context)
+        teleop_config_dir = variant_config_dir(commander_pkg, selected_arm_version)
+        teleop_path = os.path.join(teleop_config_dir, "teleop.yaml")
+        teleop_yaml = load_yaml(teleop_path)
+        if not teleop_yaml:
+            raise RuntimeError(f"无法加载遥操作配置: {teleop_path}")
+
         node = Node(
             package="my_robot_commander_cpp",
-            executable="joy_to_servo_node",
+            executable="teleop_command_node",
             output="screen",
             parameters=[robot_description, robot_description_semantic,
-                        robot_description_kinematics, servo_params,
+                        robot_description_kinematics, teleop_yaml,
                         {
-                            "use_servo": use_servo_val,
                             "arm_version": selected_arm_version,
-                            "joint_control_directions": load_joint_control_directions(
-                                commander_pkg, selected_arm_version),
                         }],
         )
         return [node]
@@ -148,8 +119,6 @@ def generate_launch_description():
         DeclareLaunchArgument("joy_deadzone", default_value="0.05"),
         DeclareLaunchArgument("joy_autorepeat_rate", default_value="100.0"),
         DeclareLaunchArgument("joy_coalesce_interval", default_value="0.01"),
-        DeclareLaunchArgument("use_servo", default_value="false",
-            description="Enable MoveIt Servo. Set true for real robot, false for FDCC-only simulation."),
         joy_node,
         OpaqueFunction(function=make_commander),
     ])

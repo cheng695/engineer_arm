@@ -44,7 +44,6 @@ def generate_launch_description():
     start_commander = LaunchConfiguration('start_commander', default='true')
     start_joy = LaunchConfiguration('start_joy', default='true')
     joy_dev = LaunchConfiguration('joy_dev', default='/dev/input/js0')
-    use_servo = LaunchConfiguration('use_servo', default='false')
 
     description_pkg = get_package_share_directory("my_robot_description")
     moveit_config_pkg = get_package_share_directory("my_robot_moveit_config")
@@ -239,7 +238,6 @@ def generate_launch_description():
                 "gripper_version": gripper_version,
                 "start_joy": start_joy,
                 "joy_dev": joy_dev,
-                "use_servo": use_servo,
             }.items(),
             condition=IfCondition(start_commander),
         )
@@ -286,8 +284,6 @@ def generate_launch_description():
             description='Start joy_node for gamepad input'),
         DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0',
             description='Joystick device path'),
-        DeclareLaunchArgument('use_servo', default_value='false',
-            description='Enable MoveIt Servo output in commander'),
 
         OpaqueFunction(function=launch_setup),
     ])

@@ -11,8 +11,6 @@
 
   <depend>rclcpp</depend>
   <depend>moveit_ros_planning_interface</depend>
-  <depend>moveit_servo</depend>
-  <depend>control_msgs</depend>
   <depend>std_srvs</depend>
   <depend>moveit_msgs</depend>
   <depend>geometry_msgs</depend>

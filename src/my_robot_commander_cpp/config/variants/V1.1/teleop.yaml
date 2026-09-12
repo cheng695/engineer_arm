@@ -1,0 +1,6 @@
+teleop_command_node:
+  ros__parameters:
+    gripper_min_angle: -1.45
+    gripper_max_angle: 0.0
+    gripper_speed: 0.8
+    joint_control_directions: [1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0]

@@ -1,12 +1,26 @@
 #pragma once
 
-#include <sensor_msgs/msg/joy.hpp>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <vector>
 
 namespace remote
 {
+
+/**
+ * @brief 与 ROS 解耦的原始手柄输入。
+ *
+ * 该结构只描述手柄数据本身，不携带 sensor_msgs/msg/Joy 依赖。
+ * ROS 节点负责把 sensor_msgs::msg::Joy 转换成 RawJoystickState，
+ * Remote 只负责手柄映射、死区和边沿状态处理。
+ */
+struct RawJoystickState
+{
+    std::vector<float> axes;
+    std::vector<int32_t> buttons;
+};
 
 /**
  * @brief 手柄遥控器状态封装。
@@ -15,7 +29,7 @@ namespace remote
  *
  * - 摇杆/方向键：返回归一化后的值 [-1.0, 1.0]，中位死区已处理
  * - 瞬时按键（A/B/X/Y/open/close）：返回当前帧按钮是否按下
- * - 边沿触发（stop/continue/enable/disable/joint/cartesian）：
+ * - 边沿触发（enable/disable/joint/cartesian）：
  *   在对应按钮的上升沿返回 true，其他帧返回 false
  */
 class Remote
@@ -50,22 +64,20 @@ public:
     // ==========================================================
     // 瞬时按键（当前帧状态）
     // ================================================================
+    bool open_gripper()  const { return buttons_[5]; }
+    bool close_gripper() const { return buttons_[6]; }
 
-    bool a_btn()         const { return button(0); }
-    bool b_btn()         const { return button(1); }
-    bool x_btn()         const { return button(3); }
-    bool y_btn()         const { return button(2); }
-    bool open_gripper()  const { return button(5); }
-    bool close_gripper() const { return button(6); }
+    // 固定点位按键：仅在按键上升沿返回 true，持续按住不会重复触发。
+    bool a_rising() const { return a_rising_; }
+    bool b_rising() const { return b_rising_; }
+    bool x_rising() const { return x_rising_; }
+    bool y_rising() const { return y_rising_; }
 
     // ================================================================
     // 边沿触发（上升沿为 true，需在 update() 之后尽快消费）
     // ================================================================
-
-    bool stop()      const { return stop_rising_ && !paused_; }
-    bool continue_() const { return stop_rising_ && paused_; }
-    bool enable()    const { return enable_rising_ && !motors_on_; }
-    bool disable()   const { return enable_rising_ && motors_on_; }
+    bool enable()    const { return enable_rising_ && motors_on_; }
+    bool disable()   const { return enable_rising_ && !motors_on_; }
     bool joint()     const { return change_rising_ && mode_is_cartesian_; }
     bool cartesian() const { return change_rising_ && !mode_is_cartesian_; }
 
@@ -74,7 +86,6 @@ public:
     // ================================================================
 
     bool motors_on()     const { return motors_on_; }
-    bool paused()        const { return paused_; }
     bool is_cartesian()  const { return mode_is_cartesian_; }
     bool is_joint()      const { return !mode_is_cartesian_; }
 
@@ -83,10 +94,10 @@ public:
     // ================================================================
 
     /**
-     * @brief 喂入一帧 Joy 消息，更新所有内部状态。
-     * @return true 消息有效已更新，false 格式异常
+     * @brief 喂入一帧原始手柄数据，更新所有内部状态。
+     * @return true 数据格式有效且已更新，false 表示数据长度不足
      */
-    bool update(const sensor_msgs::msg::Joy& msg);
+    bool update(const RawJoystickState& input);
 
 private:
     /**
@@ -100,20 +111,10 @@ private:
         return (val - (val > 0.0 ? kDeadzone : -kDeadzone)) / (1.0 - kDeadzone);
     }
 
-    /**
-     * @brief 获取按钮当前帧状态。
-     * @param i 按钮索引
-     * @return true 按钮当前帧按下
-     */
-    bool button(size_t i) const
-    {
-        return (i < kMaxButtons) && buttons_[i];
-    }
-
-    static constexpr size_t kMaxButtons = 14;
-
     // ---- 摇杆 ----
-    std::array<double, 6> axes_{};      //< 摇杆轴原始值 
+    // 当前手柄映射会访问 axes[0] 到 axes[5]，需要至少 6 个轴。
+    // D-pad 按现有实现使用 axes[4] 和 axes[5]。
+    std::array<double, 6> axes_{};      //< 摇杆轴原始值
     double dpad_up_{0.0};               //< D-Pad 上
     double dpad_down_{0.0};             //< D-Pad 下
     double dpad_left_{0.0};             //< D-Pad 左
@@ -121,19 +122,22 @@ private:
     bool J7_hold_{false};               //< 左摇杆 是否按住，用于 J4/J7 切换
 
     // ---- 当前帧按钮（每帧 update 刷新） ----
+    std::array<bool, 14> buttons_{}; //< 全部按钮当前帧状态
     bool enable_pressed_{false};        //< SELECT 当前帧按下
-    bool stop_pressed_{false};          //< START 当前帧按下（轴值或按键回退）
     bool change_pressed_{false};        //< 右摇杆 当前帧按下
-    std::array<bool, kMaxButtons> buttons_{}; //< 全部按钮当前帧状态
+
+    // ---- 固定点位按键边沿 ----
+    bool a_rising_{false};              //< A 按键上升沿
+    bool b_rising_{false};              //< B 按键上升沿
+    bool x_rising_{false};              //< X 按键上升沿
+    bool y_rising_{false};              //< Y 按键上升沿
 
     // ---- 边沿检测（上升沿为 true，仅持续一帧） ----
     bool enable_rising_{false};          //< SELECT 上升沿：松→按
-    bool stop_rising_{false};            //< START 上升沿
     bool change_rising_{false};          //< 右摇杆 上升沿
 
     // ---- 持久状态（跨帧保持，由边沿翻转） ----
     bool motors_on_{false};             //< 电机是否使能 (SELECT ↑翻转)
-    bool paused_{false};                //< 是否暂停 (START ↑翻转)
     bool mode_is_cartesian_{false};     //< 笛卡尔/关节模式 (右摇杆 ↑翻转)
 };
 
