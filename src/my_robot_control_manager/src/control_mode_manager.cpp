@@ -72,78 +72,104 @@ ControlModeManager::ControlModeManager(const rclcpp::NodeOptions& options)
                 ControlFsm::stateName(fsm_.state()));
 }
 
+/**
+ * @brief 处理电机使能回调
+ * 
+ * @param msg 使能消息
+ */
 void ControlModeManager::enableCallback(const std_msgs::msg::Bool::SharedPtr msg)
 {
-  if (msg == nullptr) 
-  {
-    return;
-  }
-  processEvent(msg->data ? 
-    ArmControlEvent::EnableRequested
-    : ArmControlEvent::DisableRequested);
+    if (msg == nullptr) 
+    {
+      return;
+    }
+    processEvent(msg->data ? 
+      ArmControlEvent::EnableRequested
+      : ArmControlEvent::DisableRequested);
 }
 
+/**
+ * @brief 处理固定位姿回调
+ * 
+ * @param msg 固定位姿消息
+ */
 void ControlModeManager::namedTargetCallback(const std_msgs::msg::String::SharedPtr msg)
 {
-  if (msg == nullptr || msg->data.empty()) {
-    RCLCPP_WARN(get_logger(), "收到空的固定位姿名称");
-    return;
-  }
-  pending_target_name_ = msg->data;
-  processEvent(ArmControlEvent::NamedTargetRequested);
+    if (msg == nullptr || msg->data.empty()) 
+    {
+      RCLCPP_WARN(get_logger(), "收到空的固定位姿名称");
+      return;
+    }
+    pending_target_name_ = msg->data;
+    processEvent(ArmControlEvent::NamedTargetRequested);
 }
 
 void ControlModeManager::controlModeCallback(
   const std_msgs::msg::String::SharedPtr msg)
 {
-  if (msg == nullptr) {
-    return;
-  }
-  if (msg->data == "cartesian") {
-    processEvent(ArmControlEvent::CartesianRequested);
-  } else if (msg->data == "joint") {
-    processEvent(ArmControlEvent::JointRequested);
-  } else {
-    RCLCPP_WARN(get_logger(), "未知控制模式: %s", msg->data.c_str());
-  }
+    if (msg == nullptr) 
+    {
+      return;
+    }
+    if (msg->data == "cartesian") 
+    {
+      processEvent(ArmControlEvent::CartesianRequested);
+    } 
+    else if (msg->data == "joint") 
+    {
+      processEvent(ArmControlEvent::JointRequested);
+    } 
+    else 
+    {
+      RCLCPP_WARN(get_logger(), "未知控制模式: %s", msg->data.c_str());
+    }
 }
 
 void ControlModeManager::pauseCallback(const std_msgs::msg::Empty::SharedPtr msg)
 {
-  if (msg != nullptr) {
-    processEvent(ArmControlEvent::StopRequested);
-  }
+    if (msg != nullptr) 
+    {
+      processEvent(ArmControlEvent::StopRequested);
+    }
 }
 
 void ControlModeManager::cartesianCallback(
   const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
-  if (msg == nullptr) {
-    return;
-  }
-  const bool active_now = twistActive(msg->twist);
-  if (active_now && !cartesian_command_active_) {
-    processEvent(ArmControlEvent::CartesianRequested);
-  } else if (!active_now && cartesian_command_active_) {
-    processEvent(ArmControlEvent::JoystickReleased);
-  }
-  cartesian_command_active_ = active_now;
+    if (msg == nullptr) 
+    {
+      return;
+    }
+    const bool active_now = twistActive(msg->twist);
+    if (active_now && !cartesian_command_active_) 
+    {
+      processEvent(ArmControlEvent::CartesianRequested);
+    } 
+    else if (!active_now && cartesian_command_active_) 
+    {
+      processEvent(ArmControlEvent::JoystickReleased);
+    }
+    cartesian_command_active_ = active_now;
 }
 
 void ControlModeManager::jointVelocityCallback(
   const std_msgs::msg::Float64MultiArray::SharedPtr msg)
 {
-  if (msg == nullptr) {
-    return;
-  }
-  const bool active_now = std::any_of(
-    msg->data.begin(), msg->data.end(), active);
-  if (active_now && !joint_command_active_) {
-    processEvent(ArmControlEvent::JointRequested);
-  } else if (!active_now && joint_command_active_) {
-    processEvent(ArmControlEvent::JoystickReleased);
-  }
-  joint_command_active_ = active_now;
+    if (msg == nullptr) 
+    {
+      return;
+    }
+    const bool active_now = std::any_of(
+      msg->data.begin(), msg->data.end(), active);
+    if (active_now && !joint_command_active_) 
+    {
+      processEvent(ArmControlEvent::JointRequested);
+    } 
+    else if (!active_now && joint_command_active_) 
+    {
+      processEvent(ArmControlEvent::JoystickReleased);
+    }
+    joint_command_active_ = active_now;
 }
 
 /**
@@ -166,7 +192,7 @@ void ControlModeManager::processEvent(ArmControlEvent event)
         return;
     }
 
-    // 发布状态
+    // 发布当前状态
     publishState();
     
     // 选择控制器
@@ -193,7 +219,7 @@ bool ControlModeManager::switchControllers(
     }
 
     const std::string current_controller = controllerFor(previous_state);
-    const std::string target_controller = controllerFor(target_state);
+    const std::string target_controller  = controllerFor(target_state);
 
     if (current_controller.empty() && target_controller.empty()) 
     {
@@ -229,7 +255,8 @@ bool ControlModeManager::switchControllers(
         request,
         [this](rclcpp::Client<controller_manager_msgs::srv::SwitchController>::SharedFuture result) {
         switch_in_progress_ = false;
-        if (!result.get()->ok) {
+        if (!result.get()->ok) 
+        {
             RCLCPP_ERROR(get_logger(), "controller 切换失败，FSM 回到 DISABLED/STOP");
             processEvent(ArmControlEvent::ControllerSwitchFailed);
         }
