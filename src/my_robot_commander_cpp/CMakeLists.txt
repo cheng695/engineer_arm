@@ -7,7 +7,6 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(moveit_ros_planning_interface REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -25,7 +24,6 @@ target_include_directories(teleop_command_node PRIVATE
 
 ament_target_dependencies(teleop_command_node
   rclcpp
-  moveit_ros_planning_interface
   geometry_msgs
   sensor_msgs
   std_msgs

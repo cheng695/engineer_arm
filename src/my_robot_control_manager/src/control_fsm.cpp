@@ -6,22 +6,36 @@ namespace my_robot_control_manager
 void ControlFsm::init()
 {
   state_ = ArmControlState::DISABLED;
-  statistics_ = {};
-  statistics_[static_cast<std::size_t>(state_)].enter_count = 1;
 }
 
+/**
+ * @brief 事件切换处理
+ * 
+ * @param event 事件 
+ * @return FsmTransition 
+ */
 FsmTransition ControlFsm::dispatch(ArmControlEvent event)
 {
-  switch (event) {
+  switch (event) 
+  {
     case ArmControlEvent::EnableRequested:
       return transitionTo(ArmControlState::HOLD);
+
     case ArmControlEvent::DisableRequested:
-    case ArmControlEvent::CommandTimeout:
-    case ArmControlEvent::HardwareFault:
+      return transitionTo(ArmControlState::DISABLED);
+
+    case ArmControlEvent::StopRequested:
+      if (state_ == ArmControlState::DISABLED) 
+      {
+        return FsmTransition{false, false, state_, state_};
+      }
+      return state_ == ArmControlState::PAUSED
+        ? transitionTo(ArmControlState::CARTESIAN)
+        : transitionTo(ArmControlState::PAUSED);
+
     case ArmControlEvent::ControllerSwitchFailed:
       return transitionTo(ArmControlState::DISABLED);
-    case ArmControlEvent::PauseRequested:
-      return transitionTo(ArmControlState::PAUSED);
+
     case ArmControlEvent::CartesianRequested:
       return canAcceptCommand() ? transitionTo(ArmControlState::CARTESIAN)
                                  : FsmTransition{};
@@ -31,7 +45,19 @@ FsmTransition ControlFsm::dispatch(ArmControlEvent event)
     case ArmControlEvent::NamedTargetRequested:
       return canAcceptCommand() ? transitionTo(ArmControlState::TRAJECTORY)
                                  : FsmTransition{};
+    case ArmControlEvent::JoystickReleased:
+      return (state_ == ArmControlState::CARTESIAN ||
+              state_ == ArmControlState::JOINT)
+        ? transitionTo(ArmControlState::HOLD)
+        : FsmTransition{false, false, state_, state_};
+
+    case ArmControlEvent::TrajectoryCompleted:
+      return state_ == ArmControlState::TRAJECTORY
+        ? transitionTo(ArmControlState::HOLD)
+        : FsmTransition{false, false, state_, state_};
+
     case ArmControlEvent::None:
+
     default:
       break;
   }
@@ -43,44 +69,45 @@ FsmTransition ControlFsm::forceStop()
   return transitionTo(ArmControlState::DISABLED);
 }
 
-void ControlFsm::update()
-{
-  ++statistics_[static_cast<std::size_t>(state_)].run_ticks;
-}
-
-const ArmControlStateInfo& ControlFsm::info(ArmControlState state) const
-{
-  return statistics_[static_cast<std::size_t>(state)];
-}
-
 const char* ControlFsm::stateName(ArmControlState state)
 {
-  switch (state) {
-    case ArmControlState::DISABLED: return "DISABLED";
-    case ArmControlState::HOLD: return "HOLD";
-    case ArmControlState::CARTESIAN: return "CARTESIAN";
-    case ArmControlState::JOINT: return "JOINT";
+  switch (state) 
+  {
+    case ArmControlState::DISABLED:   return "DISABLED";
+    case ArmControlState::HOLD:       return "HOLD";
+    case ArmControlState::CARTESIAN:  return "CARTESIAN";
+    case ArmControlState::JOINT:      return "JOINT";
     case ArmControlState::TRAJECTORY: return "TRAJECTORY";
-    case ArmControlState::PAUSED: return "PAUSED";
+    case ArmControlState::PAUSED:     return "PAUSED";
     case ArmControlState::COUNT: break;
   }
   return "UNKNOWN";
 }
 
+/**
+ * @brief 状态切换
+ * 执行正常的状态切换
+ * @param next 
+ * @return FsmTransition 
+ */
 FsmTransition ControlFsm::transitionTo(ArmControlState next)
 {
   const auto previous = state_;
-  if (previous == next) {
+  if (previous == next) 
+  {
     return FsmTransition{true, false, previous, state_};
   }
 
-  statistics_[static_cast<std::size_t>(previous)].run_ticks = 0;
   state_ = next;
-  auto& next_info = statistics_[static_cast<std::size_t>(state_)];
-  ++next_info.enter_count;
   return FsmTransition{true, true, previous, state_};
 }
 
+/**
+ * @brief 判断是否允许给运动期望
+ * 
+ * @return true 
+ * @return false 
+ */
 bool ControlFsm::canAcceptCommand() const
 {
   return state_ != ArmControlState::DISABLED && state_ != ArmControlState::PAUSED;

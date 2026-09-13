@@ -3,14 +3,12 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <array>
 #include <algorithm>
 #include <memory>
 #include <string>
-
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include "arm_hardware_interface/remote.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -20,6 +18,7 @@ using TwistStamped = geometry_msgs::msg::TwistStamped;
 using Float64MultiArray = std_msgs::msg::Float64MultiArray;
 using NamedTargetCommand = std_msgs::msg::String;
 using Bool = std_msgs::msg::Bool;
+using Empty = std_msgs::msg::Empty;
 using JointState = sensor_msgs::msg::JointState;
 
 class TeleopCommandNode
@@ -69,9 +68,10 @@ public:
         dls_pub_     = node_->create_publisher<TwistStamped>("/arm/command/cartesian_twist", 10);
         joint_pub_   = node_->create_publisher<Float64MultiArray>("/arm/command/joint_velocity", 10);
         name_pub_    = node_->create_publisher<NamedTargetCommand>("/arm/command/named_target", 10);
+        pause_pub_   = node_->create_publisher<Empty>("/arm/command/pause", 10);
         gripper_pub_ = node_->create_publisher<Float64MultiArray>("/arm/command/gripper_position", 10);
-        motor_enable_pub_ = node_->create_publisher<Bool>("/arm_motor_enable", 10);
-
+        motor_enable_pub_ = node_->create_publisher<Bool>("/arm/command/motor_enable", 10);
+        control_mode_pub_ = node_->create_publisher<NamedTargetCommand>("/arm/command/control_mode", 10);
 
         // 订阅信息
         joy_sub_ = node_->create_subscription<Joy>(
@@ -120,8 +120,12 @@ private:
         }
 
         // 模式判断
-        if (remote_.joint())     joint_mode_ = true;
-        if (remote_.cartesian()) joint_mode_ = false;
+        const bool joint_requested = remote_.joint();
+        const bool cartesian_requested = remote_.cartesian();
+        if (joint_requested)     joint_mode_ = true;
+        if (cartesian_requested) joint_mode_ = false;
+        if (joint_requested)     publishControlMode("joint");
+        if (cartesian_requested) publishControlMode("cartesian");
 
         // ---- 电机使能/失能 ----
         if (remote_.enable())  { auto m = std::make_unique<Bool>(); m->data = true;  motor_enable_pub_->publish(std::move(m)); }
@@ -223,6 +227,13 @@ private:
         name_pub_->publish(msg);
     }
 
+    void publishControlMode(const std::string& mode)
+    {
+        NamedTargetCommand msg;
+        msg.data = mode;
+        control_mode_pub_->publish(msg);
+    }
+
     double currentGripperPosition() const
     {
         if (last_joint_state_)
@@ -249,6 +260,8 @@ private:
     rclcpp::Publisher<Float64MultiArray>::SharedPtr joint_pub_;
     rclcpp::Publisher<Float64MultiArray>::SharedPtr gripper_pub_;
     rclcpp::Publisher<NamedTargetCommand>::SharedPtr name_pub_;
+    rclcpp::Publisher<NamedTargetCommand>::SharedPtr control_mode_pub_;
+    rclcpp::Publisher<Empty>::SharedPtr pause_pub_;
     rclcpp::Publisher<Bool>::SharedPtr motor_enable_pub_;
 
     // 订阅者

@@ -12,7 +12,6 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
 add_executable(control_mode_manager
-  src/arm_event_detector.cpp
   src/control_fsm.cpp
   src/control_mode_manager.cpp
 )

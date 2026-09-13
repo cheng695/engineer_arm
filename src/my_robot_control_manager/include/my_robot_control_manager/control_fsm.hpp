@@ -1,43 +1,33 @@
 #pragma once
 
-#include <array>
-#include <cstdint>
-
-#include "my_robot_control_manager/arm_control_event.hpp"
-#include "my_robot_control_manager/arm_control_state.hpp"
+#include "my_robot_control_manager/control_types.hpp"
 
 namespace my_robot_control_manager
 {
 
 struct FsmTransition
 {
-  bool accepted{false};
-  bool changed{false};
-  ArmControlState previous{ArmControlState::DISABLED};
-  ArmControlState current{ArmControlState::DISABLED};
+    bool accepted{false};   // 状态是否被接受
+    bool changed{false};    // 状态是否被改变
+    ArmControlState previous{ArmControlState::DISABLED};  // 原状态
+    ArmControlState current{ArmControlState::DISABLED};   // 新状态
 };
 
-// 纯状态机：只处理事件和状态，不依赖 ROS、controller_manager 或 CAN。
-// 当前暂不单独维护 FAULT；故障类事件统一回到 DISABLED/STOP。
+// 纯状态机：只处理事件和状态
 class ControlFsm
 {
 public:
-  void init();
-  FsmTransition dispatch(ArmControlEvent event);
-  FsmTransition forceStop();
-  void update();
-
-  ArmControlState state() const { return state_; }
-  const ArmControlStateInfo& info(ArmControlState state) const;
-  static const char* stateName(ArmControlState state);
+    void init();
+    FsmTransition dispatch(ArmControlEvent event);
+    FsmTransition forceStop();
+    ArmControlState state() const { return state_; }
+    static const char* stateName(ArmControlState state);
 
 private:
-  FsmTransition transitionTo(ArmControlState next);
-  bool canAcceptCommand() const;
+    FsmTransition transitionTo(ArmControlState next);
+    bool canAcceptCommand() const;
 
-  ArmControlState state_{ArmControlState::DISABLED};
-  std::array<ArmControlStateInfo,
-             static_cast<std::size_t>(ArmControlState::COUNT)> statistics_{};
+    ArmControlState state_{ArmControlState::DISABLED};
 };
 
 }  // namespace my_robot_control_manager
