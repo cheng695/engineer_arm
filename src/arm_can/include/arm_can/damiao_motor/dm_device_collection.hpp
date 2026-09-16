@@ -70,6 +70,7 @@ public:
    */
   size_t addMotor(std::shared_ptr<DmMotor> motor)
   {
+    groups_[motor->get_bus_name()].push_back(motors_.size());
     motors_.push_back(motor);
     return motors_.size() - 1;
   }
@@ -155,8 +156,9 @@ public:
     {
       if (!bus->is_open()) continue;
 
-      while (bus->read_frame(frame) > 0)
+      for (size_t received = 0; received < 256 && bus->read_frame(frame) > 0; ++received)
       {
+        if (frame.can_dlc < 8) continue;
         uint32_t id = frame.can_id & CAN_SFF_MASK;
         for (auto& motor : motors_)
         {
@@ -168,11 +170,6 @@ public:
           if (match)
           {
             motor->parse_feedback(frame.data);
-            // 应用方向符号（正反转），使电机状态值即为关节值
-            float dir = motor->get_direction();
-            motor->state().angle_Rad    *= dir;
-            motor->state().velocity_Rad *= dir;
-            motor->state().torque_Nm    *= dir;
             break;  // 一帧只匹配一个电机
           }
         }
@@ -205,16 +202,17 @@ public:
    *
    * kps/kds 为空或长度不足时，对应电机继续使用预配置的 kp/kd。
    */
-  void sendCommandsWithGains(const std::vector<double>& positions,
+  bool sendCommandsWithGains(const std::vector<double>& positions,
                              const std::vector<double>& velocities,
                              const std::vector<double>& efforts,
                              const std::vector<double>& kps,
                              const std::vector<double>& kds)
   {
     // 按总线分组电机索引
-    std::map<std::string, std::vector<size_t>> groups;
-    for (size_t i = 0; i < motors_.size(); ++i)
-      groups[motors_[i]->get_bus_name()].push_back(i);
+    if (positions.size() != motors_.size() || velocities.size() != motors_.size() ||
+        efforts.size() != motors_.size()) return false;
+    auto& groups = groups_;
+    bool sent = true;
 
     // 计算最大组大小（决定交替轮数）
     size_t max_per_bus = 0;
@@ -243,11 +241,12 @@ public:
         auto it = can_buses_.find(bus_name);
         if (it != can_buses_.end() && it->second->is_open())
         {
-          it->second->write_frame(motor->get_can_id(), data);
-          std::this_thread::sleep_for(std::chrono::microseconds(kInterFrameDelayUs));
+          sent = it->second->write_frame(motor->get_can_id(), data) && sent;
+
         }
       }
     }
+    return sent;
   }
 
   // ========== 批量控制 ==========
@@ -304,7 +303,7 @@ private:
       if (it != can_buses_.end() && it->second->is_open())
       {
         it->second->write_frame(motor->get_can_id(), data);
-        std::this_thread::sleep_for(std::chrono::microseconds(kInterFrameDelayUs));
+
       }
     }
   }
@@ -313,6 +312,7 @@ private:
 
   /// 电机列表（按添加顺序，索引与硬件接口关节顺序对应）
   std::vector<std::shared_ptr<DmMotor>> motors_;
+  std::map<std::string, std::vector<size_t>> groups_;
 
   /// CAN 总线映射（总线名 → 套接字）
   std::map<std::string, std::shared_ptr<canbus::CANSocket>> can_buses_;

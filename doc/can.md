@@ -45,4 +45,4 @@ ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 
  ros2 launch my_robot_bringup robot.launch.py   use_mock_hardware:=false   robot:=v1.1   gravity_compensation_mode:=assist   gravity_effort_scale:=1.1
 
-ros2 launch my_robot_bringup robot.launch.py   use_mock_hardware:=false   robot:=v1.1   gravity_compensation_mode:=assist   gravity_effort_scale:=1.1   j2j3_j3_gravity_effort_scale:=1.11
+ros2 launch my_robot_bringup robot.launch.py   use_mock_hardware:=false   robot:=v1.1   gravity_compensation_mode:=assist   gravity_effort_scale:=1.1

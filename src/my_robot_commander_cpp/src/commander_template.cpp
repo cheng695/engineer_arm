@@ -69,7 +69,7 @@ public:
         joint_pub_   = node_->create_publisher<Float64MultiArray>("/arm/command/joint_velocity", 10);
         name_pub_    = node_->create_publisher<NamedTargetCommand>("/arm/command/named_target", 10);
         pause_pub_   = node_->create_publisher<Empty>("/arm/command/pause", 10);
-        gripper_pub_ = node_->create_publisher<Float64MultiArray>("/arm/command/gripper_position", 10);
+        gripper_pub_ = node_->create_publisher<Float64MultiArray>("/gripper_controller/commands", 10);
         motor_enable_pub_ = node_->create_publisher<Bool>("/arm/command/motor_enable", 10);
         control_mode_pub_ = node_->create_publisher<NamedTargetCommand>("/arm/command/control_mode", 10);
 

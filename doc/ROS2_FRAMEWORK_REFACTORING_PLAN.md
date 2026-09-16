@@ -313,7 +313,7 @@ arm_cartesian_controller:
 
 ### 5.6 J2/J3 映射参数需要统一
 
-`RealArmHardwareInterface` 读取了 `j2j3_coupling`、`j2j3_j3_scale`、`j2j3_j3_offset` 等参数；`arm.ros2_control.xacro` 当前主要声明的是 `j2j3_up_poly_*`、`j2j3_down_poly_*` 等参数。需要检查最终展开 URDF 中参数是否真的存在，并将“关节侧 ↔ 电机侧”的映射写成独立、可单测的 `JointMotorMapper`，而不是散落在 read、write 和重力补偿中。
+`RealArmHardwareInterface` 和 `arm.ros2_control.xacro` 统一使用 `j2j3_coupling`、`j2j3_j3_scale`、`j2j3_j3_offset`、`j2j3_scale_mode` 以及 `j2j3_poly_a0..a3` 参数。参数由 `control_gains.yaml` 经 launch 传入 xacro，最终写入 URDF 的 hardware 参数，再由硬件接口读取。后续仍需要将“关节侧 ↔ 电机侧”的映射写成独立、可单测的 `JointMotorMapper`，而不是散落在 read、write 和重力补偿中。
 
 ### 5.7 固定 7 关节常量
 
@@ -498,4 +498,3 @@ src/
 - mock hardware、仿真和真实 CAN 使用同一套 controller 接口；
 - CAN 断线、命令超时、反馈超时和急停均有可验证的安全行为；
 - controller YAML、URDF/Xacro 参数和 MoveIt 配置不再存在互相矛盾的重复定义。
-

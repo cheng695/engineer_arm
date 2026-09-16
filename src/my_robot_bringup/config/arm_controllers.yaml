@@ -5,16 +5,25 @@ controller_manager:
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-    arm_controller:
+    arm_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-    forward_velocity_controller:
-      type: forward_command_controller/ForwardCommandController
+    arm_joint_controller:
+      type: my_robot_controllers/JointCommandController
 
     gripper_controller:
       type: position_controllers/JointGroupPositionController
 
-arm_controller:
+    arm_hold_controller:
+      type: my_robot_controllers/HoldController
+
+    arm_cartesian_controller:
+      type: my_robot_controllers/DlsCartesianController
+
+    arm_gravity_controller:
+      type: my_robot_controllers/GravityCompensationController
+
+arm_trajectory_controller:
   ros__parameters:
     joints:
       - joint1
@@ -29,16 +38,16 @@ arm_controller:
     state_interfaces:
       - position
       - velocity
-    state_publish_rate: 50.0
-    action_monitor_rate: 20.0
-    allow_partial_joints_goal: false
-    open_loop_control: false
-    allow_integration_in_goal_trajectories: false
+    state_publish_rate: 50.0    #  50Hz 发布频率
+    action_monitor_rate: 20.0   #  20Hz 状态监控频率，是否完成，失败，超时
+    allow_partial_joints_goal: false  # 不允许部分目标
+    open_loop_control: false          # 不允许开环控制
+    allow_integration_in_goal_trajectories: false # 不允许根据速度或加速度目标积分生成位置
     constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+      stopped_velocity_tolerance: 0.01  # 停止速度容差
+      goal_time: 0.5    # 允许的额外超时
 
-forward_velocity_controller:
+arm_joint_controller:
   ros__parameters:
     joints:
       - joint1
@@ -48,10 +57,55 @@ forward_velocity_controller:
       - joint5
       - joint6
       - joint7
-    interface_name: velocity
+    command_interface: position
+    command_topic: /arm/command/joint_velocity
+    command_timeout: 0.1
 
 gripper_controller:
   ros__parameters:
     joints:
       - joint_right_finger
     interface_name: position
+
+arm_hold_controller:
+  ros__parameters:
+    joints:
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
+      - joint7
+    command_interface: position
+
+arm_cartesian_controller:
+  ros__parameters:
+    command_topic: /arm/command/cartesian_twist
+    joints:
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
+      - joint7
+    command_interface: position
+    state_interfaces:
+      - position
+      - velocity
+    command_timeout: 0.1
+
+arm_gravity_controller:
+  ros__parameters:
+    joints:
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
+      - joint7
+    command_interface: effort
+    effort_scale: 1.0
+    max_effort: 0.0

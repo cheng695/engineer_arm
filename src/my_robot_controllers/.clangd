@@ -1,0 +1,20 @@
+CompileFlags:
+  # Relative to this .clangd file; regenerate after adding sources/dependencies.
+  CompilationDatabase: ../../build/my_robot_controllers
+  # Keep Clang's builtin headers; use the same libstdc++ as the GCC 11 build.
+  Compiler: /usr/bin/g++-11
+  Add:
+    - -std=gnu++17
+    - -isystem
+    - /usr/include/c++/11
+    - -isystem
+    - /usr/include/x86_64-linux-gnu/c++/11
+    - -isystem
+    - /usr/include/c++/11/backward
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+
+Index:
+  Background: Build

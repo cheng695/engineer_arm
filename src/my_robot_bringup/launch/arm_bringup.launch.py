@@ -1,4 +1,5 @@
 import os
+import tempfile
 import subprocess
 import yaml
 from ament_index_python.packages import get_package_share_directory
@@ -21,21 +22,30 @@ def generate_launch_description():
         "config", "control_gains.yaml")
     with open(control_gains_path, "r") as f:
         control_gains = yaml.safe_load(f)
-    default_j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
     j2j3_args = {
         key: str(control_gains.get(key, default))
         for key, default in {
-            "j2j3_up_poly_a3": 0.0,
-            "j2j3_up_poly_a2": 0.0,
-            "j2j3_up_poly_a1": 0.0,
-            "j2j3_up_poly_a0": 0.0,
-            "j2j3_down_poly_a3": 0.0,
-            "j2j3_down_poly_a2": 0.0,
-            "j2j3_down_poly_a1": 0.0,
-            "j2j3_down_poly_a0": 0.0,
-            "j2j3_direction_deadband": 0.02,
-            "j2j3_direction_smoothing": 0.02,
+            "j2j3_coupling": 0.0,
+            "j2j3_j3_scale": 1.0,
+            "j2j3_j3_offset": 0.0,
+            "j2j3_scale_mode": "divide",
+            "j2j3_poly_a3": 0.0,
+            "j2j3_poly_a2": 0.0,
+            "j2j3_poly_a1": 0.0,
+            "j2j3_poly_a0": 0.0,
         }.items()
+    }
+    gains = control_gains.get("arm_control_gains", {})
+    motor_gain_args = {
+        f"{name}_{field}": str(gains.get(source, {}).get(field, default))
+        for name, source, defaults in [
+            ("joint1", "joint1", (120.0, 3.0)), ("joint2", "joint2", (240.0, 3.0)),
+            ("joint3", "joint3", (240.0, 3.0)), ("joint4", "joint4", (120.0, 3.0)),
+            ("joint5", "joint5", (120.0, 3.0)), ("joint6", "joint6", (120.0, 1.0)),
+            ("joint7", "joint7", (60.0, 1.0)),
+            ("joint_right_finger", "gripper", (60.0, 1.0)),
+        ]
+        for field, default in zip(("kp", "kd"), defaults)
     }
 
     # 启动参数（对齐 openarm 命名习惯）
@@ -45,13 +55,13 @@ def generate_launch_description():
     gripper_version = LaunchConfiguration("gripper_version", default=robot_version)
     use_mock_hardware = LaunchConfiguration("use_mock_hardware", default="false")
     gravity_compensation_mode = LaunchConfiguration("gravity_compensation_mode", default="off")
-    gravity_effort_scale = LaunchConfiguration("gravity_effort_scale", default="0.0")
-    j2j3_j3_gravity_effort_scale = LaunchConfiguration(
-        "j2j3_j3_gravity_effort_scale", default=default_j3_gravity_scale)
+    gravity_effort_scale = LaunchConfiguration("gravity_effort_scale", default="1.0")
     active_real_joints = LaunchConfiguration("active_real_joints", default="")
     can0_interface = LaunchConfiguration("can0_interface", default="can0")
     can1_interface = LaunchConfiguration("can1_interface", default="can1")
     controllers_file = LaunchConfiguration("controllers_file", default="arm_controllers.yaml")
+    gravity_test_mode = LaunchConfiguration("gravity_test_mode", default="false")
+    gravity_always_on = LaunchConfiguration("gravity_always_on", default="false")
     description_xacro_file = os.path.join(
         get_package_share_directory(description_package),
         "urdf",
@@ -59,9 +69,6 @@ def generate_launch_description():
     urdf_file = "/tmp/robot_description.urdf"
 
     def generate_urdf_file(context):
-        j3_gravity_scale = j2j3_j3_gravity_effort_scale.perform(context)
-        if not j3_gravity_scale:
-            j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
         args = [
             "xacro",
             description_xacro_file,
@@ -72,7 +79,7 @@ def generate_launch_description():
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
             f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
             *[f"{key}:={value}" for key, value in j2j3_args.items()],
-            f"j2j3_j3_gravity_effort_scale:={j3_gravity_scale}",
+            *[f"{key}:={value}" for key, value in motor_gain_args.items()],
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
             f"can1_interface:={can1_interface.perform(context)}",
@@ -80,7 +87,33 @@ def generate_launch_description():
         ]
         with open(urdf_file, "w") as f:
             subprocess.run(args, stdout=f, env=os.environ.copy(), check=True)
-        return []
+        with open(urdf_file) as stream:
+            model_xml = stream.read()
+        source_config = os.path.join(get_package_share_directory(bringup_package), "config", controllers_file.perform(context))
+        with open(source_config) as stream:
+            parameters = yaml.safe_load(stream)
+        for controller in ("arm_joint_controller", "arm_cartesian_controller", "arm_gravity_controller"):
+            parameters[controller]["ros__parameters"]["robot_description"] = model_xml
+        # 同一个启动参数同时作为硬件内部或 controller 重力输出的比例系数。
+        parameters["arm_gravity_controller"]["ros__parameters"]["effort_scale"] = float(
+            gravity_effort_scale.perform(context))
+        with tempfile.NamedTemporaryFile(mode="w", prefix="arm_controllers_", suffix=".yaml", delete=False) as stream:
+            yaml.safe_dump(parameters, stream, allow_unicode=True)
+            generated_config = stream.name
+        from launch.actions import SetLaunchConfiguration
+        variant = arm_version.perform(context).lower().replace("_", ".")
+        variant = {"v1.0": "V1.0", "v1.1": "V1.1"}.get(variant, variant)
+        srdf = os.path.join(get_package_share_directory("my_robot_moveit_config"), "config", "variants", variant, "my_robot.srdf")
+        with open(srdf) as stream:
+            semantic = stream.read()
+        return [
+            SetLaunchConfiguration("controllers_file", generated_config),
+            Node(package="my_robot_control_manager", executable="control_mode_manager",
+                 parameters=[os.path.join(get_package_share_directory(bringup_package), "config", "control_mode_manager.yaml"),
+                             {"robot_description_semantic": semantic,
+                              "gravity_test_mode": gravity_test_mode,
+                              "gravity_always_on": gravity_always_on}], output="screen"),
+        ]
 
     robot_description_content = Command(
         [
@@ -96,7 +129,7 @@ def generate_launch_description():
             " gravity_compensation_mode:=", gravity_compensation_mode,
             " gravity_effort_scale:=", gravity_effort_scale,
             *sum(([f" {key}:=", value] for key, value in j2j3_args.items()), []),
-            " j2j3_j3_gravity_effort_scale:=", j2j3_j3_gravity_effort_scale,
+            *sum(([f" {key}:=", value] for key, value in motor_gain_args.items()), []),
             " active_real_joints:=", active_real_joints,
             " can0_interface:=", can0_interface,
             " can1_interface:=", can1_interface,
@@ -136,13 +169,13 @@ def generate_launch_description():
     arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["arm_controller", "--controller-manager", "/controller_manager"],
+        arguments=["arm_trajectory_controller", "arm_joint_controller", "arm_cartesian_controller", "arm_hold_controller", "arm_gravity_controller", "--inactive", "--controller-manager", "/controller_manager"],
     )
 
     forward_velocity_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["forward_velocity_controller", "--controller-manager", "/controller_manager"],
+        arguments=["arm_joint_controller", "--controller-manager", "/controller_manager"],
     )
 
     gripper_controller_spawner = Node(
@@ -164,7 +197,6 @@ def generate_launch_description():
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
         spawn_arm_controller_event,
-        forward_velocity_controller_spawner,
         gripper_controller_spawner,
     ]
 
@@ -180,17 +212,19 @@ def generate_launch_description():
         DeclareLaunchArgument("gripper_version", default_value=robot_version,
             description="Gripper description variant override: v1_0 or v1_1"),
         DeclareLaunchArgument("gravity_compensation_mode", default_value="off",
-            description="Gravity compensation mode: off, assist, gravity_only"),
-        DeclareLaunchArgument("gravity_effort_scale", default_value="0.0",
+            description="Gravity mode: off or external_gravity_only"),
+        DeclareLaunchArgument("gravity_effort_scale", default_value="1.0",
             description="Gravity compensation effort scale"),
-        DeclareLaunchArgument("j2j3_j3_gravity_effort_scale", default_value=default_j3_gravity_scale,
-            description="J3-only gravity effort multiplier; defaults to control_gains.yaml"),
         DeclareLaunchArgument("active_real_joints", default_value="",
             description="Comma-separated list of joint names using real CAN I/O"),
         DeclareLaunchArgument("can0_interface", default_value="can0",
             description="CAN interface for joints 1-4"),
         DeclareLaunchArgument("can1_interface", default_value="can1",
             description="CAN interface for joints 5-7"),
+        DeclareLaunchArgument("gravity_test_mode", default_value="false",
+            description="Enable gravity-only controller mode"),
+        DeclareLaunchArgument("gravity_always_on", default_value="false",
+            description="Keep gravity controller active during motion"),
         OpaqueFunction(function=generate_urdf_file),
         *nodes,
     ])

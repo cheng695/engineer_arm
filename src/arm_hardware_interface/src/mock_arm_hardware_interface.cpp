@@ -6,6 +6,43 @@
 namespace arm_hardware_interface
 {
 
+MockArmHardwareInterface::~MockArmHardwareInterface()
+{
+    teardown_internal_node();
+    hardware_ready_ = false;
+}
+
+void MockArmHardwareInterface::setup_internal_node()
+{
+    internal_node_ = rclcpp::Node::make_shared("mock_arm_hw_internal");
+    ready_pub_ = internal_node_->create_publisher<std_msgs::msg::Bool>(
+        "/arm/state/hardware_ready", 10);
+    ready_timer_ = internal_node_->create_wall_timer(
+        std::chrono::milliseconds(20), [this] {
+            std_msgs::msg::Bool message;
+            message.data = hardware_ready_.load();
+            ready_pub_->publish(message);
+        });
+    spin_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    spin_executor_->add_node(internal_node_);
+    spin_thread_ = std::make_unique<std::thread>([this] { spin_executor_->spin(); });
+}
+
+void MockArmHardwareInterface::teardown_internal_node()
+{
+    if (spin_executor_)
+        spin_executor_->cancel();
+    if (spin_thread_)
+    {
+        spin_thread_->join();
+        spin_thread_.reset();
+    }
+    spin_executor_.reset();
+    ready_timer_.reset();
+    ready_pub_.reset();
+    internal_node_.reset();
+}
+
 // ================================================================
 // 生命周期
 // ================================================================
@@ -22,12 +59,6 @@ hardware_interface::CallbackReturn MockArmHardwareInterface::on_init(
     // 仿真模式：所有关节均回显（无 CAN 硬件）
     std::fill(use_real_joint_io_.begin(), use_real_joint_io_.end(), false);
 
-    if (!init_gravity_compensator(info))
-        RCLCPP_WARN(rclcpp::get_logger("MockArmHW"), "重力补偿未启用");
-
-    init_dls();
-    init_joint_controller(info);
-
     RCLCPP_INFO(rclcpp::get_logger("MockArmHW"), "MockArmHardwareInterface on_init 完成 (%zu 关节, 全仿真)",
         info.joints.size());
     return CallbackReturn::SUCCESS;
@@ -36,8 +67,8 @@ hardware_interface::CallbackReturn MockArmHardwareInterface::on_init(
 hardware_interface::CallbackReturn MockArmHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
-    setup_internal_node("mock_arm_hw_internal");
-    fsm_.onEnable();  // 仿真直接使能，跳过电机控制
+    setup_internal_node();
+    hardware_ready_ = true;
     RCLCPP_INFO(rclcpp::get_logger("MockArmHW"), "on_activate 完成（仿真模式）");
     return CallbackReturn::SUCCESS;
 }
@@ -45,6 +76,7 @@ hardware_interface::CallbackReturn MockArmHardwareInterface::on_activate(
 hardware_interface::CallbackReturn MockArmHardwareInterface::on_deactivate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
+    hardware_ready_ = false;
     teardown_internal_node();
     RCLCPP_INFO(rclcpp::get_logger("MockArmHW"), "on_deactivate 完成");
     return CallbackReturn::SUCCESS;
@@ -85,14 +117,7 @@ std::vector<hardware_interface::CommandInterface> MockArmHardwareInterface::expo
 hardware_interface::return_type MockArmHardwareInterface::read(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        hw_states_pos_[i] = hw_commands_pos_[i];
-        hw_states_vel_[i] = hw_commands_vel_[i];
-        hw_states_eff_[i] = 0.0;
-    }
-    apply_gravity_to_effort();
-    publish_feedback_debug(info_, false);
+    echo_mock_joints(info_);
     return hardware_interface::return_type::OK;
 }
 
@@ -103,18 +128,6 @@ hardware_interface::return_type MockArmHardwareInterface::read(
 hardware_interface::return_type MockArmHardwareInterface::write(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
-    process_control(info_);
-
-    // controller_manager 默认 500Hz，诊断日志每 500 帧打印一次，避免终端刷屏。
-    static constexpr int kDiagPrintEveryWrites = 500;
-    static int diag = 0;
-    if (++diag % kDiagPrintEveryWrites == 0) {
-        RCLCPP_INFO(rclcpp::get_logger("MockHW"),
-            "WRITE cmd: J1=%.3f J2=%.3f J3=%.3f J4=%.3f J5=%.3f J6=%.3f J7=%.3f | FSM=%s",
-            hw_commands_pos_[0], hw_commands_pos_[1], hw_commands_pos_[2],
-            hw_commands_pos_[3], hw_commands_pos_[4], hw_commands_pos_[5],
-            hw_commands_pos_[6], fsm_.state_name());
-    }
     return hardware_interface::return_type::OK;
 }
 

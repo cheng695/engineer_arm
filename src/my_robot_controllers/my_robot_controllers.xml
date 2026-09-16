@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<library path="my_robot_controllers">
+  <class
+    name="my_robot_controllers/GravityCompensationController"
+    type="my_robot_controllers::GravityCompensationController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Effort-only gravity compensation controller.
+    </description>
+  </class>
+  <class
+    name="my_robot_controllers/DlsCartesianController"
+    type="my_robot_controllers::DlsCartesianController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Cartesian velocity controller using a damped least-squares solver.
+    </description>
+  </class>
+  <class
+    name="my_robot_controllers/JointCommandController"
+    type="my_robot_controllers::JointCommandController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Joint velocity command controller with position integration and joint limits.
+    </description>
+  </class>
+  <class
+    name="my_robot_controllers/HoldController"
+    type="my_robot_controllers::HoldController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Position hold controller that keeps the last commanded joint positions.
+    </description>
+  </class>
+</library>

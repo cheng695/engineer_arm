@@ -14,6 +14,91 @@
 namespace arm_hardware_interface
 {
 
+RealArmHardwareInterface::~RealArmHardwareInterface()
+{
+    teardown_internal_node();
+    disable_motors();
+    device_collection_.closeCANBuses();
+}
+
+namespace
+{
+constexpr auto kFeedbackTimeout = std::chrono::milliseconds(100);
+}
+
+void RealArmHardwareInterface::init_gravity_mode(
+    const hardware_interface::HardwareInfo& info)
+{
+    auto it = info.hardware_parameters.find("gravity_compensation_mode");
+    const std::string mode = it != info.hardware_parameters.end() ? it->second : "off";
+    external_gravity_only_ = mode == "external" || mode == "controller_only" ||
+        mode == "external_gravity_only";
+    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[GRAVITY] mode=%s", mode.c_str());
+}
+
+void RealArmHardwareInterface::setup_internal_node()
+{
+    internal_node_ = rclcpp::Node::make_shared("arm_hw_internal");
+    enable_sub_ = internal_node_->create_subscription<std_msgs::msg::Bool>(
+        "/arm/command/motor_enable", 10,
+        [this](const std_msgs::msg::Bool::SharedPtr message) {
+            if (!message)
+                return;
+            if (message->data)
+                enable_requested_ = true;
+            else
+                disable_requested_ = true;
+        });
+    raw_motor_state_pub_ = internal_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "/arm_debug/raw_motor_states", 10);
+    ready_pub_ = internal_node_->create_publisher<std_msgs::msg::Bool>(
+        "/arm/state/hardware_ready", 10);
+    ready_timer_ = internal_node_->create_wall_timer(
+        std::chrono::milliseconds(20), [this] {
+            std_msgs::msg::Bool message;
+            message.data = hardware_ready_.load();
+            ready_pub_->publish(message);
+        });
+    motors_enabled_ = false;
+    safe_zero_frames_ = 0;
+
+    spin_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    spin_executor_->add_node(internal_node_);
+    spin_thread_ = std::make_unique<std::thread>([this] { spin_executor_->spin(); });
+}
+
+void RealArmHardwareInterface::teardown_internal_node()
+{
+    if (spin_executor_)
+        spin_executor_->cancel();
+    if (spin_thread_)
+    {
+        spin_thread_->join();
+        spin_thread_.reset();
+    }
+    spin_executor_.reset();
+    ready_timer_.reset();
+    ready_pub_.reset();
+    raw_motor_state_pub_.reset();
+    enable_sub_.reset();
+    internal_node_.reset();
+}
+
+void RealArmHardwareInterface::publish_raw_motor_states()
+{
+    if (!raw_motor_state_pub_ || !internal_node_)
+        return;
+    sensor_msgs::msg::JointState message;
+    message.header.stamp = internal_node_->now();
+    message.name.reserve(info_.joints.size());
+    message.position = raw_motor_pos_;
+    message.velocity = raw_motor_vel_;
+    message.effort = raw_motor_eff_;
+    for (const auto& joint : info_.joints)
+        message.name.push_back(joint.name);
+    raw_motor_state_pub_->publish(message);
+}
+
 // ================================================================
 // 生命周期
 // ================================================================
@@ -31,15 +116,38 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     init_joint_limits(info);
     init_mock_joints(info);
 
-    if (!init_gravity_compensator(info))
-        RCLCPP_WARN(rclcpp::get_logger("ArmHW"), "重力补偿未启用");
+    init_gravity_mode(info);
 
+    // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）。
+    // 例如只想调试部分关节时，可以让没有列出的关节继续走 Mock。
+    auto it = info_.hardware_parameters.find("active_real_joints");
+    if (it != info_.hardware_parameters.end() && !it->second.empty())
+    {
+        std::stringstream ss(it->second);
+        std::string name;
+        std::set<std::string> active;
+        while (std::getline(ss, name, ','))
+        {
+            name.erase(std::remove_if(name.begin(), name.end(), ::isspace), name.end());
+            if (!name.empty()) active.insert(name);
+        }
+        for (size_t i = 0; i < info_.joints.size(); ++i)
+            use_real_joint_io_[i] = use_real_joint_io_[i] && active.count(info_.joints[i].name) > 0;
+    }
+
+
+    joint_to_motor_.assign(info.joints.size(), static_cast<size_t>(-1));
     if (!init_motors())
     {
         RCLCPP_FATAL(rclcpp::get_logger("ArmHW"), "电机初始化失败");
         return CallbackReturn::ERROR;
     }
 
+    const auto motor_count = device_collection_.size();
+    cmd_pos_.resize(motor_count); cmd_vel_.resize(motor_count); cmd_eff_.resize(motor_count);
+    cmd_kp_.resize(motor_count); cmd_kd_.resize(motor_count);
+    last_feedback_counts_.assign(motor_count, 0);
+    last_feedback_times_.assign(motor_count, std::chrono::steady_clock::now());
     // 读取 J2/J3 耦合系数（从 xacro 硬件参数）。
     // 这些值是启动时的默认值，on_activate() 中还会再用 YAML 参数覆盖一次。
     auto it_coupling = info_.hardware_parameters.find("j2j3_coupling");
@@ -67,33 +175,6 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
     if (it_scale_mode != info_.hardware_parameters.end())
         j2j3_scale_mode_ = it_scale_mode->second;
 
-    auto it_gravity_scale = info_.hardware_parameters.find("gravity_effort_scale");
-    if (it_gravity_scale != info_.hardware_parameters.end())
-        gravity_effort_scale_ = std::stod(it_gravity_scale->second);
-    auto it_j3_gravity_scale = info_.hardware_parameters.find("j2j3_j3_gravity_effort_scale");
-    if (it_j3_gravity_scale != info_.hardware_parameters.end())
-        j3_gravity_effort_scale_ = std::stod(it_j3_gravity_scale->second);
-
-    // 解析 active_real_joints（允许手动覆盖哪些关节走真实 CAN I/O）。
-    // 例如只想调试部分关节时，可以让没有列出的关节继续走 Mock。
-    auto it = info_.hardware_parameters.find("active_real_joints");
-    if (it != info_.hardware_parameters.end() && !it->second.empty())
-    {
-        std::stringstream ss(it->second);
-        std::string name;
-        std::set<std::string> active;
-        while (std::getline(ss, name, ','))
-        {
-            name.erase(std::remove_if(name.begin(), name.end(), ::isspace), name.end());
-            if (!name.empty()) active.insert(name);
-        }
-        for (size_t i = 0; i < info_.joints.size(); ++i)
-            use_real_joint_io_[i] = active.count(info_.joints[i].name) > 0;
-    }
-
-    init_dls();
-    init_joint_controller(info);
-
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "on_init 完成 (%zu 关节, %zu 真实电机)",
         info_.joints.size(),
         std::count(use_real_joint_io_.begin(), use_real_joint_io_.end(), true));
@@ -103,7 +184,7 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_init(
 hardware_interface::CallbackReturn RealArmHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*prev*/)
 {
-    setup_internal_node("arm_hw_internal");
+    setup_internal_node();
 
     int opened = device_collection_.openCANBuses();
 
@@ -111,16 +192,17 @@ hardware_interface::CallbackReturn RealArmHardwareInterface::on_activate(
     // 这样 can0/can1 其中一条失败时，另一条总线上的电机仍然可以保留反馈。
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
-        auto motor = device_collection_.getMotor(i);
-        if (motor && !device_collection_.isBusOpen(motor->get_bus_name()))
-            use_real_joint_io_[i] = false;
+        auto motor = device_collection_.getMotor(joint_to_motor_[i]);
+        if (motor && !device_collection_.isBusOpen(motor->get_bus_name())) {
+            RCLCPP_ERROR(rclcpp::get_logger("ArmHW"), "CAN 总线打开失败，拒绝激活");
+            teardown_internal_node();
+            device_collection_.closeCANBuses();
+            return CallbackReturn::ERROR;
+        }
     }
 
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
         "CAN 总线: %d 条已打开", opened);
-
-    // 从 ROS 参数同步控制增益（覆盖 xacro 默认值）
-    sync_control_gains();
 
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "on_activate 完成。电机未使能，等待 /arm_motor_enable");
     return CallbackReturn::SUCCESS;
@@ -171,12 +253,16 @@ hardware_interface::return_type RealArmHardwareInterface::read(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
     // read() 是 ros2_control 的状态更新入口：
-    // 先拿原始电机反馈，再做 Mock 回填、J2/J3 解耦和重力调试量计算。
+    // 先读取 raw 电机反馈，再完成关节方向转换、Mock 回填和 J2/J3 解耦。
     read_can_feedback();
+    if (!check_runtime_feedback())
+    {
+        disable_motors();
+        return hardware_interface::return_type::ERROR;
+    }
+    publish_raw_motor_states();
     echo_mock_joints(info_);
     apply_j2j3_coupling();
-    apply_gravity_to_effort();
-    publish_feedback_debug(info_, true);
     return hardware_interface::return_type::OK;
 }
 
@@ -185,10 +271,11 @@ hardware_interface::return_type RealArmHardwareInterface::read(
 // ================================================================
 
 hardware_interface::return_type RealArmHardwareInterface::write(
-    const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
+    const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
-    // 优先处理使能/失能/保持请求（不被 FDCC 阻塞）
+    // 优先处理使能/失能/保持请求
     process_motor_requests();
+    hardware_ready_ = motors_enabled_ && safe_zero_frames_ == 0;
 
     if (!motors_enabled_)
     {
@@ -213,57 +300,15 @@ hardware_interface::return_type RealArmHardwareInterface::write(
         return hardware_interface::return_type::OK;
     }
 
-    // FSM 统一控制
-    if (process_control(info_))
-    {
-        send_can_commands();
-        return hardware_interface::return_type::OK;
-    }
-
-    // 速度模式检测
-    bool has_velocity = false;
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        if (std::abs(hw_commands_vel_[i]) > 1e-6)
-        {
-            has_velocity = true;
-            break;
+    for (size_t i = 0; i < info_.joints.size(); ++i) {
+        if (!std::isfinite(hw_commands_pos_[i]) || !std::isfinite(hw_commands_vel_[i]) ||
+            !std::isfinite(hw_commands_eff_[i])) {
+            disable_motors();
+            return hardware_interface::return_type::ERROR;
         }
     }
-
-    double dt = period.seconds();
-
-    if (has_velocity)
-    {
-        if (!vel_mode_active_)
-        {
-            // 速度模式下硬件接口自己对速度积分成位置目标，再发 MIT 位置命令。
-            // 初次进入时从当前命令位置开始积分，避免目标突变。
-            integrated_pos_ = hw_commands_pos_;
-            RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[VEL_MODE] 进入速度模式");
-        }
-        vel_mode_active_ = true;
-
-        for (size_t i = 0; i < info_.joints.size(); ++i)
-        {
-            if (!use_real_joint_io_[i]) continue;
-            integrated_pos_[i] = std::clamp(
-                integrated_pos_[i] + hw_commands_vel_[i] * dt,
-                joint_lower_limits_[i], joint_upper_limits_[i]);
-            hw_commands_pos_[i] = integrated_pos_[i];
-        }
-    }
-    else
-    {
-        if (vel_mode_active_)
-        {
-            RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[VEL_MODE] 退出速度模式");
-        }
-        vel_mode_active_ = false;
-    }
-
-    send_can_commands();
-    return hardware_interface::return_type::OK;
+    // 位置目标由上层 ros2_control controller 生成，硬件接口不再自行积分速度。
+    return send_can_commands() ? hardware_interface::return_type::OK : hardware_interface::return_type::ERROR;
 }
 
 // ================================================================
@@ -274,6 +319,7 @@ bool RealArmHardwareInterface::init_motors()
 {
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
+        if (!use_real_joint_io_[i]) continue;
         const auto& j = info_.joints[i];
 
         // 没有 can_id 的关节由 init_mock_joints 处理，跳过电机创建
@@ -319,21 +365,17 @@ bool RealArmHardwareInterface::init_motors()
             direction = std::stof(it_dir->second);
         motor->set_direction(direction);
 
+        joint_to_motor_[i] = device_collection_.size();
         device_collection_.addMotor(motor);
     }
     return true;
 }
 
 // ================================================================
-// 控制增益同步
+// CAN 反馈读取
 // ================================================================
 
-void RealArmHardwareInterface::sync_control_gains()
-{
-    // 从 ROS 参数读取控制增益，覆盖 xacro 默认值
-    if (!internal_node_)
-        return;
-
+/*
     // J2/J3 解耦参数：这些参数通常从 control_gains.yaml 来，
     // 用于把 J3 电机侧角度和关节侧角度互相转换。
     double coupling = j2j3_coupling_;
@@ -393,20 +435,10 @@ void RealArmHardwareInterface::sync_control_gains()
         RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
             "[GAIN] j2j3_scale_mode=%s (来自 YAML)", scale_mode.c_str());
     }
-    double j3_gravity_scale = j3_gravity_effort_scale_;
-    internal_node_->get_parameter_or(
-        "j2j3_j3_gravity_effort_scale", j3_gravity_scale, j3_gravity_scale);
-    if (j3_gravity_scale != j3_gravity_effort_scale_)
-    {
-        j3_gravity_effort_scale_ = j3_gravity_scale;
-        RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-            "[GAIN] j2j3_j3_gravity_effort_scale=%.4f (来自 YAML)", j3_gravity_scale);
-    }
-
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         const auto& name = info_.joints[i].name;
-        auto motor = device_collection_.getMotor(i);
+        auto motor = device_collection_.getMotor(joint_to_motor_[i]);
         if (!motor) continue;
 
         double kp = motor->get_kp();
@@ -432,25 +464,8 @@ void RealArmHardwareInterface::sync_control_gains()
         }
     }
 
-    sync_gravity_parameters();
 }
-
-void RealArmHardwareInterface::sync_gravity_parameters()
-{
-    if (!internal_node_)
-        return;
-
-    double scale = gravity_effort_scale_;
-    internal_node_->get_parameter_or("gravity_effort_scale", scale, scale);
-    gravity_effort_scale_ = scale;
-
-    RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-        "[GRAVITY] effort_scale=%.3f", gravity_effort_scale_);
-}
-
-// ================================================================
-// CAN 反馈读取
-// ================================================================
+*/
 
 void RealArmHardwareInterface::read_can_feedback()
 {
@@ -458,44 +473,86 @@ void RealArmHardwareInterface::read_can_feedback()
 
     // device_collection_ 只包含 CAN 电机，索引与关节不完全对应
     // 这里按 CAN 电机添加顺序读取（跳过 Mock 关节）
-    size_t motor_idx = 0;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         if (!use_real_joint_io_[i]) continue;
-
-        auto motor = device_collection_.getMotor(motor_idx++);
+        auto motor = device_collection_.getMotor(joint_to_motor_[i]);
         if (motor)
         {
             raw_motor_pos_[i] = motor->get_angle_rad();
             raw_motor_vel_[i] = motor->get_velocity_rad();
             raw_motor_eff_[i] = motor->get_torque_nm();
-            hw_states_pos_[i] = raw_motor_pos_[i];
-            hw_states_vel_[i] = raw_motor_vel_[i];
-            hw_states_eff_[i] = raw_motor_eff_[i];
+            const double direction = motor->get_direction();
+            hw_states_pos_[i] = raw_motor_pos_[i] * direction;
+            hw_states_vel_[i] = raw_motor_vel_[i] * direction;
+            hw_states_eff_[i] = raw_motor_eff_[i] * direction;
         }
     }
 }
 
-void RealArmHardwareInterface::refresh_feedback_before_enable()
+bool RealArmHardwareInterface::check_runtime_feedback()
 {
-    for (int n = 0; n < 3; ++n)
+    if (!motors_enabled_)
     {
-        // 使能前先用当前反馈刷新命令目标。
-        // 这样电机一使能不会追逐上一次 controller 残留的位置命令。
-        for (size_t i = 0; i < info_.joints.size(); ++i)
+        reset_feedback_monitor();
+        return true;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!feedback_monitor_active_)
+    {
+        for (size_t i = 0; i < device_collection_.size(); ++i)
         {
-            if (!use_real_joint_io_[i]) continue;
-            hw_commands_pos_[i] = hw_states_pos_[i];
-            hw_commands_vel_[i] = 0.0;
-            hw_commands_eff_[i] = 0.0;
+            const auto* motor = device_collection_.getMotorConst(i);
+            last_feedback_counts_[i] = motor ? motor->get_feedback_count() : 0;
+            last_feedback_times_[i] = now;
+        }
+        feedback_monitor_active_ = true;
+        return true;
+    }
+
+    for (size_t i = 0; i < info_.joints.size(); ++i)
+    {
+        if (!use_real_joint_io_[i])
+            continue;
+
+        const size_t motor_index = joint_to_motor_[i];
+        const auto* motor = device_collection_.getMotorConst(motor_index);
+        if (!motor)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("ArmHW"),
+                "[FEEDBACK] %s 对应的电机不存在，立即失能", info_.joints[i].name.c_str());
+            return false;
         }
 
-        send_can_commands();
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        read_can_feedback();
-        echo_mock_joints(info_);
-        apply_j2j3_coupling();
+        const size_t feedback_count = motor->get_feedback_count();
+        if (feedback_count > last_feedback_counts_[motor_index])
+        {
+            last_feedback_counts_[motor_index] = feedback_count;
+            last_feedback_times_[motor_index] = now;
+        }
+
+        const bool feedback_stale = now - last_feedback_times_[motor_index] > kFeedbackTimeout;
+        const bool motor_fault = !motor->is_enabled() || motor->get_error_code() != 1;
+        if (feedback_stale || motor_fault)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("ArmHW"),
+                "[FEEDBACK] %s 异常，count=%zu，error_code=%u，stale=%s，立即失能",
+                info_.joints[i].name.c_str(), feedback_count,
+                static_cast<unsigned int>(motor->get_error_code()),
+                feedback_stale ? "true" : "false");
+            return false;
+        }
     }
+    return true;
+}
+
+void RealArmHardwareInterface::reset_feedback_monitor()
+{
+    feedback_monitor_active_ = false;
+    std::fill(last_feedback_counts_.begin(), last_feedback_counts_.end(), 0);
+    const auto now = std::chrono::steady_clock::now();
+    std::fill(last_feedback_times_.begin(), last_feedback_times_.end(), now);
 }
 
 void RealArmHardwareInterface::sync_control_targets_to_feedback()
@@ -507,22 +564,8 @@ void RealArmHardwareInterface::sync_control_targets_to_feedback()
         hw_commands_pos_[i] = hw_states_pos_[i];
         hw_commands_vel_[i] = 0.0;
         hw_commands_eff_[i] = 0.0;
-        if (i < hold_position_target_.size())
-            hold_position_target_[i] = hw_states_pos_[i];
     }
 
-    std::vector<double> cur_pos(kJointCount, 0.0);
-    for (size_t i = 0; i < std::min(kJointCount, hw_states_pos_.size()); ++i)
-    {
-        cur_pos[i] = hw_states_pos_[i];
-    }
-
-    std::fill(dls_twist_.begin(), dls_twist_.end(), 0.0);
-    std::fill(joint_vel_target_.begin(), joint_vel_target_.end(), 0.0);
-    dls_twist_countdown_.store(0, std::memory_order_release);
-    joint_vel_countdown_.store(0, std::memory_order_release);
-    dls_controller_.SyncPositions(cur_pos);
-    joint_controller_.SyncPositions(cur_pos);
 }
 
 // ================================================================
@@ -531,28 +574,49 @@ void RealArmHardwareInterface::sync_control_targets_to_feedback()
 
 void RealArmHardwareInterface::process_motor_requests()
 {
-    if (enable_requested_.exchange(false))  enable_motors();
-    if (disable_requested_.exchange(false)) disable_motors();
-    if (hold_requested_.exchange(false))    hold_position();
+    if (disable_requested_.exchange(false))
+    {
+        enable_requested_ = false;
+        disable_motors();
+        return;
+    }
+    if (enable_requested_.exchange(false) && !motors_enabled_ &&
+        enable_phase_ == EnablePhase::Idle)
+        {
+        enable_attempts_ = 0;
+        enable_motors();
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (enable_phase_ == EnablePhase::Clearing && now >= enable_deadline_)
+    {
+        enable_feedback_counts_ = real_motor_feedback_counts();
+        device_collection_.enableAll();
+        enable_phase_ = EnablePhase::Waiting;
+        enable_deadline_ = now + std::chrono::milliseconds(100);
+    }
+    if (enable_phase_ == EnablePhase::Waiting)
+    {
+        if (all_real_motors_feedback_ok(enable_feedback_counts_))
+        {
+            motors_enabled_ = true;
+            enable_phase_ = EnablePhase::Idle;
+            safe_zero_frames_ = kSafeZeroFrames;
+            reset_feedback_monitor();
+        } else if (now >= enable_deadline_)
+        {
+            if (enable_attempts_ < 8) enable_motors();
+            else disable_motors();
+        }
+    }
 }
 
 void RealArmHardwareInterface::enable_motors()
 {
-    refresh_feedback_before_enable();
+    ++enable_attempts_;
     sync_control_targets_to_feedback();
-    fsm_.onEnable();
-    fsm_.update(false, false);
-
-    if (!clear_errors_enable_and_wait())
-        return;
-
-    motors_enabled_ = true;
-    safe_zero_frames_ = kSafeZeroFrames;
-    RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-        "[POWER] 使能，同步当前位置 J1=%.3f J2=%.3f (%d 帧暖启动)",
-        hw_states_pos_.size() > 0 ? hw_states_pos_[0] : 0.0,
-        hw_states_pos_.size() > 1 ? hw_states_pos_[1] : 0.0,
-        kSafeZeroFrames);
+    device_collection_.clearAllErrors();
+    enable_phase_ = EnablePhase::Clearing;
+    enable_deadline_ = std::chrono::steady_clock::now() + std::chrono::milliseconds(10);
 }
 
 std::vector<size_t> RealArmHardwareInterface::real_motor_feedback_counts() const
@@ -575,10 +639,10 @@ bool RealArmHardwareInterface::all_real_motors_feedback_ok(
     // detail 用于日志里指出具体是哪一个关节缺反馈或状态不对。
     bool ok = true;
     std::ostringstream oss;
-    size_t motor_idx = 0;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         if (!use_real_joint_io_[i]) continue;
+        const size_t motor_idx = joint_to_motor_[i];
 
         const auto* motor = device_collection_.getMotorConst(motor_idx);
         const size_t before =
@@ -595,7 +659,6 @@ bool RealArmHardwareInterface::all_real_motors_feedback_ok(
                 << ", status=" << (motor ? static_cast<int>(motor->get_error_code()) : -1)
                 << ")";
         }
-        ++motor_idx;
     }
 
     if (detail)
@@ -603,172 +666,88 @@ bool RealArmHardwareInterface::all_real_motors_feedback_ok(
     return ok;
 }
 
-bool RealArmHardwareInterface::clear_errors_enable_and_wait()
-{
-    static constexpr int kMaxEnableAttempts = 8;
-    static constexpr int kFeedbackPollsPerAttempt = 10;
-    static constexpr auto kPollSleep = std::chrono::milliseconds(2);
-    static constexpr auto kCommandGap = std::chrono::milliseconds(10);
-
-    for (int attempt = 1; attempt <= kMaxEnableAttempts; ++attempt)
-    {
-        const auto counts_before = real_motor_feedback_counts();
-
-        // 达妙电机需要先清错误位再使能；之后轮询反馈确认 status 进入 enabled。
-        device_collection_.clearAllErrors();
-        std::this_thread::sleep_for(kCommandGap);
-        device_collection_.enableAll();
-
-        for (int poll = 0; poll < kFeedbackPollsPerAttempt; ++poll)
-        {
-            std::this_thread::sleep_for(kPollSleep);
-            read_can_feedback();
-            echo_mock_joints(info_);
-            apply_j2j3_coupling();
-
-            std::string detail;
-            if (all_real_motors_feedback_ok(counts_before, &detail))
-            {
-                RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-                    "[POWER] 清错+使能成功 (attempt=%d)", attempt);
-                return true;
-            }
-        }
-
-        std::string detail;
-        all_real_motors_feedback_ok(counts_before, &detail);
-        RCLCPP_WARN(rclcpp::get_logger("ArmHW"),
-            "[POWER] 清错+使能后仍未确认全部电机正常 (attempt=%d/%d): %s",
-            attempt, kMaxEnableAttempts, detail.c_str());
-    }
-
-    RCLCPP_ERROR(rclcpp::get_logger("ArmHW"),
-        "[POWER] 多次清错+使能失败，保持未使能状态");
-    device_collection_.disableAll();
-    return false;
-}
-
 void RealArmHardwareInterface::disable_motors()
 {
-    fsm_.onDisable();
-    fsm_.update(false, false);
+    enable_phase_ = EnablePhase::Idle;
+    hardware_ready_ = false;
     sync_control_targets_to_feedback();
     motors_enabled_ = false;
+    reset_feedback_monitor();
     device_collection_.disableAll();
     RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[POWER] 失能");
-}
-
-void RealArmHardwareInterface::hold_position()
-{
-    for (size_t i = 0; i < info_.joints.size(); ++i)
-    {
-        hw_commands_pos_[i] = hw_states_pos_[i];
-        hw_commands_vel_[i] = 0.0;
-        if (i < hold_position_target_.size())
-            hold_position_target_[i] = hw_states_pos_[i];
-    }
-    safe_zero_frames_ = 0;
-    RCLCPP_INFO(rclcpp::get_logger("ArmHW"), "[HOLD] 位置锁定");
 }
 
 // ================================================================
 // CAN 指令发送
 // ================================================================
-
-void RealArmHardwareInterface::send_can_commands()
+bool RealArmHardwareInterface::send_can_commands()
 {
-    std::vector<double> grav(kJointCount, 0.0);
-    const auto gravity_mode = gravity_compensator_.mode();
-    const bool gravity_ready =
-        motors_enabled_ && gravity_compensator_.is_initialized() && gravity_effort_scale_ > 0.0;
-    const bool gravity_only =
-        gravity_mode == GravityCompensator::Mode::GravityOnly && gravity_ready;
-    const bool gravity_assist =
-        gravity_mode == GravityCompensator::Mode::Assist && gravity_ready;
-
-    if ((gravity_only || gravity_assist) && gravity_compensator_.is_initialized())
-    {
-        // 重力补偿输出的是关节侧力矩，这里先乘全局系数。
-        // J3 还额外支持独立系数，方便只微调同步带耦合后的 J3 重力前馈。
-        grav = gravity_compensator_.compute(hw_states_pos_);
-        for (double& tau : grav)
-            tau *= gravity_effort_scale_;
-        if (kJ3Index < grav.size())
-            grav[kJ3Index] *= j3_gravity_effort_scale_;
-    }
-    else if (gravity_mode == GravityCompensator::Mode::GravityOnly &&
-             motors_enabled_ &&
-             !gravity_ready)
-    {
-        RCLCPP_WARN_ONCE(rclcpp::get_logger("ArmHW"),
-            "[GRAVITY] gravity_only 已请求，但模型未就绪或 gravity_effort_scale<=0，保持普通控制输出");
-    }
+    // 重力力矩由 GravityCompensationController 写入 hw_commands_eff_，
+    // 硬件接口只负责把控制器输出发送给真实电机。
 
     // 构建电机级命令（仅 CAN 电机，不含 Mock 关节）
-    size_t n_motors = device_collection_.size();
-    std::vector<double> cmd_pos(n_motors, 0.0);
-    std::vector<double> cmd_vel(n_motors, 0.0);
-    std::vector<double> cmd_eff(n_motors, 0.0);
-    std::vector<double> cmd_kp;
-    std::vector<double> cmd_kd;
-    cmd_kp.reserve(n_motors);
-    cmd_kd.reserve(n_motors);
+    auto& cmd_pos = cmd_pos_;
+    auto& cmd_vel = cmd_vel_;
+    auto& cmd_eff = cmd_eff_;
+    auto& cmd_kp = cmd_kp_;
+    auto& cmd_kd = cmd_kd_;
+    std::fill(cmd_kp.begin(), cmd_kp.end(), 0.0);
+    std::fill(cmd_kd.begin(), cmd_kd.end(), 0.0);
 
-    size_t motor_idx = 0;
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
         if (!use_real_joint_io_[i]) continue;
-        const bool arm_gravity_only = gravity_only && i < kJointCount;
-        double pos = arm_gravity_only ? hw_states_pos_[i] : hw_commands_pos_[i];
-        double vel = arm_gravity_only ? 0.0 : hw_commands_vel_[i];
-        double eff = (arm_gravity_only ? 0.0 : hw_commands_eff_[i]) +
-            (i < grav.size() ? grav[i] : 0.0);
+        const size_t motor_idx = joint_to_motor_[i];
+
+        const bool gravity_only_output = external_gravity_only_;
+        double pos = gravity_only_output ? hw_states_pos_[i] : hw_commands_pos_[i];
+        double vel = gravity_only_output ? 0.0 : hw_commands_vel_[i];
+        double eff = hw_commands_eff_[i];
+
         if (i == kJ3Index && use_real_joint_io_[kJ2Index])
         {
             // J3 关节目标 -> J3 电机目标：
             // controller 看到的是解耦后的关节角，发给电机前要把 J2 引入的耦合量反算回去。
-            const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
-            const double j2_vel = arm_gravity_only ? 0.0 : hw_commands_vel_[kJ2Index];
+            const double j2_pos = gravity_only_output ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
+            const double j2_vel = gravity_only_output ? 0.0 : hw_commands_vel_[kJ2Index];
+
             const double correction = j2j3_poly_correction(j2_pos);
             const double derivative = j2j3_poly_derivative(j2_pos);
-            pos -= correction;
-            vel -= derivative * j2_vel;
+            const double scale = j2j3_j3_scale_;
+
+            if (j2j3_scale_mode_is_multiply())
+            {
+                pos = (pos - correction) / scale;
+                vel = (vel - derivative * j2_vel) / scale;
+                eff *= scale;
+            }
+            else
+            {
+                pos = scale * pos - correction;
+                vel = scale * vel - derivative * j2_vel;
+                eff /= scale;
+            }
         }
         if (i == kJ2Index && use_real_joint_io_[kJ3Index])
         {
             // J3 电机力矩会通过同步带反作用到 J2 电机侧；
-            // 这里把 J3 的命令/重力力矩按解耦导数映射回 J2，保证力矩通道一致。
-            const double j3_eff =
-                (arm_gravity_only ? 0.0 : hw_commands_eff_[kJ3Index]) +
-                (kJ3Index < grav.size() ? grav[kJ3Index] : 0.0);
-            const double j2_pos = arm_gravity_only ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
+            // 这里把 J3 的力矩命令按解耦导数映射回 J2，保证力矩通道一致。
+            const double j3_eff = hw_commands_eff_[kJ3Index];
+            const double j2_pos = gravity_only_output ? hw_states_pos_[kJ2Index] : hw_commands_pos_[kJ2Index];
             const double derivative = j2j3_poly_derivative(j2_pos);
-            eff += derivative * j3_eff;
+            eff += derivative * j3_eff / (j2j3_scale_mode_is_multiply() ? 1.0 : j2j3_j3_scale_);
         }
+
         cmd_pos[motor_idx] = pos;
         cmd_vel[motor_idx] = vel;
         cmd_eff[motor_idx] = eff;
-        // gravity_only 模式只输出重力前馈，不让位置环继续拉目标，所以 kp/kd 置 0。
-        cmd_kp.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kp());
-        cmd_kd.push_back(arm_gravity_only ? 0.0 : device_collection_.getMotor(motor_idx)->get_kd());
 
-        if (info_.joints[i].name == "joint_right_finger")
-        {
-            static size_t gripper_log_counter = 0;
-            if (++gripper_log_counter % 250 == 0)
-            {
-                RCLCPP_INFO(rclcpp::get_logger("ArmHW"),
-                    "[GRIPPER-HW] target=%.4f rad feedback=%.4f rad raw=%.4f rad vel_cmd=%.4f rad/s "
-                    "motor_cmd=%.4f rad mode=%s kp=%.2f kd=%.2f",
-                    hw_commands_pos_[i], hw_states_pos_[i], raw_motor_pos_[i], hw_commands_vel_[i],
-                    pos, gravity_only ? "gravity_only" : "normal",
-                    cmd_kp.back(), cmd_kd.back());
-            }
-        }
-        motor_idx++;
+        // gravity_only 模式只输出重力前馈，不让位置环继续拉目标，所以 kp/kd 置 0。
+        cmd_kp[motor_idx] = gravity_only_output ? 0.0 : device_collection_.getMotor(motor_idx)->get_kp();
+        cmd_kd[motor_idx] = gravity_only_output ? 0.0 : device_collection_.getMotor(motor_idx)->get_kd();
     }
 
-    device_collection_.sendCommandsWithGains(cmd_pos, cmd_vel, cmd_eff, cmd_kp, cmd_kd);
+    return device_collection_.sendCommandsWithGains(cmd_pos, cmd_vel, cmd_eff, cmd_kp, cmd_kd);
 }
 
 }  // namespace arm_hardware_interface

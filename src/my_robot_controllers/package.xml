@@ -1,26 +1,22 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>my_robot_control_manager</name>
+  <name>my_robot_controllers</name>
   <version>0.1.0</version>
-  <description>Control mode manager for the robot ros2_control controllers.</description>
+  <description>ros2_control controllers for the robot arm</description>
   <maintainer email="2245895175@qq.com">whc</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>rclcpp</depend>
-  <depend>tinyxml2</depend>
-  <depend>tinyxml2_vendor</depend>
-  <depend>controller_manager_msgs</depend>
-  <depend>control_msgs</depend>
+  <depend>controller_interface</depend>
+  <depend>realtime_tools</depend>
   <depend>geometry_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
   <depend>std_msgs</depend>
-  <depend>rclcpp_action</depend>
-  <depend>trajectory_msgs</depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <depend>pinocchio</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

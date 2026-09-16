@@ -1,4 +1,5 @@
 import os
+import tempfile
 import subprocess
 import yaml
 from ament_index_python.packages import get_package_share_directory
@@ -36,13 +37,14 @@ def generate_launch_description():
     gripper_version = LaunchConfiguration('gripper_version', default=robot_version)
     use_mock_hardware = LaunchConfiguration('use_mock_hardware', default='false')
     gravity_compensation_mode = LaunchConfiguration('gravity_compensation_mode', default='off')
-    gravity_effort_scale = LaunchConfiguration('gravity_effort_scale', default='0.0')
-    j2j3_j3_gravity_effort_scale = LaunchConfiguration('j2j3_j3_gravity_effort_scale', default='')
+    gravity_effort_scale = LaunchConfiguration('gravity_effort_scale', default='1.0')
     active_real_joints = LaunchConfiguration('active_real_joints', default='')
     can0_interface = LaunchConfiguration('can0_interface', default='can0')
     can1_interface = LaunchConfiguration('can1_interface', default='can1')
     start_commander = LaunchConfiguration('start_commander', default='true')
     start_joy = LaunchConfiguration('start_joy', default='true')
+    gravity_test_mode = LaunchConfiguration('gravity_test_mode', default='false')
+    gravity_always_on = LaunchConfiguration('gravity_always_on', default='false')
     joy_dev = LaunchConfiguration('joy_dev', default='/dev/input/js0')
 
     description_pkg = get_package_share_directory("my_robot_description")
@@ -54,29 +56,37 @@ def generate_launch_description():
     urdf_file = "/tmp/robot_description.urdf"
 
     def launch_setup(context):
-        selected_config_dir = _variant_config_dir(moveit_config_pkg, robot_version.perform(context))
+        selected_config_dir = _variant_config_dir(moveit_config_pkg, arm_version.perform(context))
         initial_positions_file = os.path.join(selected_config_dir, "initial_positions.yaml")
-        ros2_controllers_file = os.path.join(selected_config_dir, "ros2_controllers.yaml")
+        ros2_controllers_file = os.path.join(bringup_pkg, "config", "arm_controllers.yaml")
         control_gains_path = os.path.join(bringup_pkg, "config", "control_gains.yaml")
+        control_mode_manager_path = os.path.join(bringup_pkg, "config", "control_mode_manager.yaml")
         with open(control_gains_path, "r") as f:
             control_gains = yaml.safe_load(f)
-        j3_gravity_scale = j2j3_j3_gravity_effort_scale.perform(context)
-        if not j3_gravity_scale:
-            j3_gravity_scale = str(control_gains.get("j2j3_j3_gravity_effort_scale", 1.0))
         j2j3_args = {
             key: str(control_gains.get(key, default))
             for key, default in {
-                "j2j3_up_poly_a3": 0.0,
-                "j2j3_up_poly_a2": 0.0,
-                "j2j3_up_poly_a1": 0.0,
-                "j2j3_up_poly_a0": 0.0,
-                "j2j3_down_poly_a3": 0.0,
-                "j2j3_down_poly_a2": 0.0,
-                "j2j3_down_poly_a1": 0.0,
-                "j2j3_down_poly_a0": 0.0,
-                "j2j3_direction_deadband": 0.02,
-                "j2j3_direction_smoothing": 0.02,
+                "j2j3_coupling": 0.0,
+                "j2j3_j3_scale": 1.0,
+                "j2j3_j3_offset": 0.0,
+                "j2j3_scale_mode": "divide",
+                "j2j3_poly_a3": 0.0,
+                "j2j3_poly_a2": 0.0,
+                "j2j3_poly_a1": 0.0,
+                "j2j3_poly_a0": 0.0,
             }.items()
+        }
+        gains = control_gains.get("arm_control_gains", {})
+        motor_gain_args = {
+            f"{name}_{field}": str(gains.get(source, {}).get(field, default))
+            for name, source, defaults in [
+                ("joint1", "joint1", (120.0, 3.0)), ("joint2", "joint2", (240.0, 3.0)),
+                ("joint3", "joint3", (240.0, 3.0)), ("joint4", "joint4", (120.0, 3.0)),
+                ("joint5", "joint5", (120.0, 3.0)), ("joint6", "joint6", (120.0, 1.0)),
+                ("joint7", "joint7", (60.0, 1.0)),
+                ("joint_right_finger", "gripper", (60.0, 1.0)),
+            ]
+            for field, default in zip(("kp", "kd"), defaults)
         }
 
         args = [
@@ -89,7 +99,7 @@ def generate_launch_description():
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
             f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
             *[f"{key}:={value}" for key, value in j2j3_args.items()],
-            f"j2j3_j3_gravity_effort_scale:={j3_gravity_scale}",
+            *[f"{key}:={value}" for key, value in motor_gain_args.items()],
             f"active_real_joints:={active_real_joints.perform(context)}",
             f"can0_interface:={can0_interface.perform(context)}",
             f"can1_interface:={can1_interface.perform(context)}",
@@ -107,7 +117,7 @@ def generate_launch_description():
             ' gravity_compensation_mode:=', gravity_compensation_mode,
             ' gravity_effort_scale:=', gravity_effort_scale,
             *sum(([f' {key}:=', value] for key, value in j2j3_args.items()), []),
-            ' j2j3_j3_gravity_effort_scale:=', j3_gravity_scale,
+            *sum(([f' {key}:=', value] for key, value in motor_gain_args.items()), []),
             ' active_real_joints:=', active_real_joints,
             ' can0_interface:=', can0_interface,
             ' can1_interface:=', can1_interface,
@@ -128,7 +138,7 @@ def generate_launch_description():
                     "gravity_compensation_mode": gravity_compensation_mode,
                     "gravity_effort_scale": gravity_effort_scale,
                     **j2j3_args,
-                    "j2j3_j3_gravity_effort_scale": j3_gravity_scale,
+                    **motor_gain_args,
                     "active_real_joints": active_real_joints,
                     "can0_interface": can0_interface,
                     "can1_interface": can1_interface,
@@ -152,6 +162,21 @@ def generate_launch_description():
             for key in ("default_sensor", "kinect_depthimage"):
                 moveit_params.pop(key, None)
 
+        # 将模型显式传给自定义 controller；不依赖父节点参数继承。
+        with open(ros2_controllers_file) as stream:
+            controller_parameters = yaml.safe_load(stream)
+        with open(urdf_file) as stream:
+            model_xml = stream.read()
+        for controller in ("arm_joint_controller", "arm_cartesian_controller", "arm_gravity_controller"):
+            controller_parameters[controller]["ros__parameters"]["robot_description"] = model_xml
+        # 同一个启动参数同时作为硬件内部或 controller 重力输出的比例系数。
+        controller_parameters["arm_gravity_controller"]["ros__parameters"]["effort_scale"] = float(
+            gravity_effort_scale.perform(context))
+        config_handle = tempfile.NamedTemporaryFile(mode="w", prefix="arm_controllers_", suffix=".yaml", delete=False)
+        with config_handle:
+            yaml.safe_dump(controller_parameters, config_handle, allow_unicode=True)
+        ros2_controllers_file = config_handle.name
+
         # ---- Nodes ----
 
         robot_state_publisher = Node(
@@ -172,6 +197,16 @@ def generate_launch_description():
                 control_gains,
                 {'use_sim_time': use_sim_time}
             ],
+            output="screen",
+        )
+
+        control_mode_manager_node = Node(
+            package="my_robot_control_manager",
+            executable="control_mode_manager",
+            parameters=[moveit_params, control_mode_manager_path,
+                        {'use_sim_time': use_sim_time,
+                         'gravity_test_mode': gravity_test_mode,
+                         'gravity_always_on': gravity_always_on}],
             output="screen",
         )
 
@@ -205,13 +240,14 @@ def generate_launch_description():
         arm_controller_spawner = Node(
             package="controller_manager",
             executable="spawner",
-            arguments=["arm_controller", "--controller-manager", "/controller_manager"],
+            arguments=["arm_trajectory_controller", "arm_joint_controller", "arm_cartesian_controller", "arm_hold_controller", "arm_gravity_controller", "--inactive", "--controller-manager", "/controller_manager"],
         )
 
         gripper_controller_spawner = Node(
             package="controller_manager",
             executable="spawner",
             arguments=["gripper_controller", "--controller-manager", "/controller_manager"],
+            remappings=[("/gripper_controller/commands", "/arm/command/gripper_position")],
         )
 
         spawn_arm_controller_event = RegisterEventHandler(
@@ -245,6 +281,7 @@ def generate_launch_description():
         return [
             robot_state_publisher,
             ros2_control_node,
+            control_mode_manager_node,
             move_group_node,
             rviz_node,
             joint_state_broadcaster_spawner,
@@ -267,11 +304,9 @@ def generate_launch_description():
         DeclareLaunchArgument('gripper_version', default_value=robot_version,
             description='Gripper description variant override: v1_0 or v1_1'),
         DeclareLaunchArgument('gravity_compensation_mode', default_value='off',
-            description="Gravity compensation: 'off', 'assist', or 'gravity_only'"),
-        DeclareLaunchArgument('gravity_effort_scale', default_value='0.0',
+            description="Gravity mode: 'off' or 'external_gravity_only'"),
+        DeclareLaunchArgument('gravity_effort_scale', default_value='1.0',
             description='Gravity compensation effort scale'),
-        DeclareLaunchArgument('j2j3_j3_gravity_effort_scale', default_value='',
-            description='J3-only gravity effort multiplier; empty uses control_gains.yaml'),
         DeclareLaunchArgument('active_real_joints', default_value='',
             description='Comma-separated joint names for real CAN I/O'),
         DeclareLaunchArgument('can0_interface', default_value='can0',
@@ -282,6 +317,10 @@ def generate_launch_description():
             description='Start joystick commander node'),
         DeclareLaunchArgument('start_joy', default_value='true',
             description='Start joy_node for gamepad input'),
+        DeclareLaunchArgument('gravity_test_mode', default_value='false',
+            description='Enable gravity-only controller mode'),
+        DeclareLaunchArgument('gravity_always_on', default_value='false',
+            description='Keep gravity controller active during motion'),
         DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0',
             description='Joystick device path'),
 

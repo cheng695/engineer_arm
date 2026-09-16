@@ -12,13 +12,7 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(example_interfaces REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(trajectory_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(pinocchio REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(moveit_core REQUIRED)
 
 # arm_can is optional — only RealArmHardwareInterface needs it
 find_package(arm_can QUIET)
@@ -27,12 +21,7 @@ find_package(arm_can QUIET)
 set(LIB_SOURCES
   src/arm_hardware_base.cpp
   src/mock_arm_hardware_interface.cpp
-  src/dls_controller.cpp
-  src/control_fsm.cpp
   src/remote.cpp
-  src/joint_controller.cpp
-  src/gravity_compensator.cpp
-  src/pinocchio_kinematics_plugin.cpp
 )
 
 # Conditionally add real plugin
@@ -57,11 +46,7 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rclcpp_lifecycle
   std_msgs
-  example_interfaces
-  geometry_msgs
   sensor_msgs
-  trajectory_msgs
-  moveit_core
 )
 
 if(arm_can_FOUND)
@@ -69,17 +54,11 @@ if(arm_can_FOUND)
 endif()
 
 # Use target_link_libraries for non-ament packages
-target_link_libraries(${PROJECT_NAME}
-  pinocchio::pinocchio
-  Eigen3::Eigen
-)
-
 # Export plugins
 pluginlib_export_plugin_description_file(hardware_interface mock_arm_hardware_interface.xml)
 if(arm_can_FOUND)
   pluginlib_export_plugin_description_file(hardware_interface real_arm_hardware_interface.xml)
 endif()
-pluginlib_export_plugin_description_file(moveit_core pinocchio_kinematics_plugin_description.xml)
 
 # Install
 install(TARGETS ${PROJECT_NAME}
@@ -90,4 +69,12 @@ install(DIRECTORY include/
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(hardware_contract_test test/hardware_contract_test.cpp)
+  target_link_libraries(hardware_contract_test ${PROJECT_NAME})
+  ament_target_dependencies(hardware_contract_test hardware_interface rclcpp sensor_msgs std_msgs)
+  add_test(NAME hardware_contract_test COMMAND hardware_contract_test)
+endif()
+
 ament_package()

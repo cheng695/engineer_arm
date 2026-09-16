@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false gravity_compensation_mode:=off gravity_effort_scale:=0.0 j2j3_up_poly_a3:=0.0 j2j3_up_poly_a2:=0.0 j2j3_up_poly_a1:=0.0 j2j3_up_poly_a0:=0.0 j2j3_down_poly_a3:=0.0 j2j3_down_poly_a2:=0.0 j2j3_down_poly_a1:=0.0 j2j3_down_poly_a0:=0.0 j2j3_direction_deadband:=0.02 j2j3_direction_smoothing:=0.02 j2j3_j3_gravity_effort_scale:=1.0 active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
+  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false gravity_compensation_mode:=off gravity_effort_scale:=0.0 j2j3_coupling:=0.0 j2j3_j3_scale:=1.0 j2j3_j3_offset:=0.0 j2j3_scale_mode:=divide j2j3_poly_a3:=0.0 j2j3_poly_a2:=0.0 j2j3_poly_a1:=0.0 j2j3_poly_a0:=0.0 joint1_kp:=120.0 joint1_kd:=3.0 joint2_kp:=240.0 joint2_kd:=3.0 joint3_kp:=240.0 joint3_kd:=3.0 joint4_kp:=120.0 joint4_kd:=3.0 joint5_kp:=120.0 joint5_kd:=3.0 joint6_kp:=120.0 joint6_kd:=1.0 joint7_kp:=60.0 joint7_kd:=1.0 joint_right_finger_kp:=60.0 joint_right_finger_kd:=1.0 active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
     <xacro:property name="is_arm_v1_1" value="${arm_version == 'v1_1' or arm_version == 'v1.1' or arm_version == '1.1' or arm_version == 1.1}"/>
     <ros2_control name="${name}" type="system">
       <hardware>
@@ -15,17 +15,14 @@
         <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
         <param name="gravity_effort_scale">${gravity_effort_scale}</param>
         <param name="active_real_joints">${active_real_joints}</param>
-        <param name="j2j3_up_poly_a3">${j2j3_up_poly_a3}</param>
-        <param name="j2j3_up_poly_a2">${j2j3_up_poly_a2}</param>
-        <param name="j2j3_up_poly_a1">${j2j3_up_poly_a1}</param>
-        <param name="j2j3_up_poly_a0">${j2j3_up_poly_a0}</param>
-        <param name="j2j3_down_poly_a3">${j2j3_down_poly_a3}</param>
-        <param name="j2j3_down_poly_a2">${j2j3_down_poly_a2}</param>
-        <param name="j2j3_down_poly_a1">${j2j3_down_poly_a1}</param>
-        <param name="j2j3_down_poly_a0">${j2j3_down_poly_a0}</param>
-        <param name="j2j3_direction_deadband">${j2j3_direction_deadband}</param>
-        <param name="j2j3_direction_smoothing">${j2j3_direction_smoothing}</param>
-        <param name="j2j3_j3_gravity_effort_scale">${j2j3_j3_gravity_effort_scale}</param>
+        <param name="j2j3_coupling">${j2j3_coupling}</param>
+        <param name="j2j3_j3_scale">${j2j3_j3_scale}</param>
+        <param name="j2j3_j3_offset">${j2j3_j3_offset}</param>
+        <param name="j2j3_scale_mode">${j2j3_scale_mode}</param>
+        <param name="j2j3_poly_a3">${j2j3_poly_a3}</param>
+        <param name="j2j3_poly_a2">${j2j3_poly_a2}</param>
+        <param name="j2j3_poly_a1">${j2j3_poly_a1}</param>
+        <param name="j2j3_poly_a0">${j2j3_poly_a0}</param>
       </hardware>
 
       <!-- J1-J4 使用 CAN 总线 can0 -->
@@ -40,8 +37,8 @@
         <param name="recv_can_id">0x11</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">120.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">${joint1_kp}</param>
+        <param name="kd">${joint1_kd}</param>
         <param name="lower_limit">-2.3562</param>
         <param name="upper_limit">2.3562</param>
         <param name="direction">-1.0</param>
@@ -57,8 +54,8 @@
         <param name="can_id">2</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">240.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">${joint2_kp}</param>
+        <param name="kd">${joint2_kd}</param>
         <param name="lower_limit">${-0.262 if is_arm_v1_1 else -0.262}</param>
         <param name="upper_limit">${1.204 if is_arm_v1_1 else 1.134}</param>
       </joint>
@@ -73,8 +70,8 @@
         <param name="can_id">3</param>
         <param name="motor_model">J8009</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">240.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">${joint3_kp}</param>
+        <param name="kd">${joint3_kd}</param>
         <param name="lower_limit">-0.9599</param>
         <param name="upper_limit">${1.221 if is_arm_v1_1 else 0.9599}</param>
       </joint>
@@ -89,8 +86,8 @@
         <param name="can_id">4</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">${can0_interface}</param>
-        <param name="kp">120.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">${joint4_kp}</param>
+        <param name="kd">${joint4_kd}</param>
         <param name="lower_limit">${-3.1416 if is_arm_v1_1 else -2.3562}</param>
         <param name="upper_limit">${3.1416 if is_arm_v1_1 else 2.3562}</param>
       </joint>
@@ -106,8 +103,8 @@
         <param name="can_id">5</param>
         <param name="motor_model">J4340</param>
         <param name="can_bus">${can1_interface}</param>
-        <param name="kp">120.0</param>
-        <param name="kd">3.0</param>
+        <param name="kp">${joint5_kp}</param>
+        <param name="kd">${joint5_kd}</param>
         <param name="lower_limit">${-0.78 if is_arm_v1_1 else -1.5708}</param>
         <param name="upper_limit">1.5708</param>
         <param name="direction">-1.0</param>
@@ -123,8 +120,8 @@
         <param name="can_id">6</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">${can1_interface}</param>
-        <param name="kp">120.0</param>
-        <param name="kd">1.0</param>
+        <param name="kp">${joint6_kp}</param>
+        <param name="kd">${joint6_kd}</param>
         <param name="lower_limit">-1.5708</param>
         <param name="upper_limit">1.5708</param>
       </joint>
@@ -139,8 +136,8 @@
         <param name="can_id">7</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">${can1_interface}</param>
-        <param name="kp">60.0</param>
-        <param name="kd">1.0</param>
+        <param name="kp">${joint7_kp}</param>
+        <param name="kd">${joint7_kd}</param>
         <param name="lower_limit">${-3.1416 if is_arm_v1_1 else -1.5708}</param>
         <param name="upper_limit">${3.1416 if is_arm_v1_1 else 1.5708}</param>
       </joint>
@@ -156,8 +153,8 @@
         <param name="recv_can_id">8</param>
         <param name="motor_model">J4310</param>
         <param name="can_bus">${can1_interface}</param>
-        <param name="kp">60.0</param>
-        <param name="kd">1.0</param>
+        <param name="kp">${joint_right_finger_kp}</param>
+        <param name="kd">${joint_right_finger_kd}</param>
         <param name="lower_limit">-1.45</param>
         <param name="upper_limit">0.0</param>
       </joint>

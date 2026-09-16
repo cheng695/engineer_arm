@@ -3,32 +3,25 @@
 # 机械臂各关节的 MIT 控制增益。
 # 在启动时加载为 ROS 参数，会覆盖 xacro 中的默认值。
 #
-# 调参说明（来自 OpenArm 文档）：
-#   ⚠️ 请谨慎调整增益值。先用较低增益验证行为，再逐步增大。
-#   如果在较大位置差下使用高增益执行动作，控制器可能产生危险的高速指令。
-#
 # 参数说明：
 #   kp: MIT 模式比例增益（位置刚度）
 #   kd: MIT 模式微分增益（速度阻尼）
 #
 
-# J2/J3 方向相关多项式解耦:
-#   joint3_decoupled = raw_joint3 + a3*raw_joint2^3 + a2*raw_joint2^2 + a1*raw_joint2 + a0
-#   J2 velocity > deadband 用 up；J2 velocity < -deadband 用 down；低速区保持上一方向并平滑过渡。
-j2j3_up_poly_a3: -0.2522016902
-j2j3_up_poly_a2: 0.2727246110
-j2j3_up_poly_a1: 0.9715433593
-j2j3_up_poly_a0: -1.1654617560
-j2j3_down_poly_a3: -0.1750399217
-j2j3_down_poly_a2: 0.3568872846
-j2j3_down_poly_a1: 0.8257693613
-j2j3_down_poly_a0: 0.2379728080
-j2j3_direction_deadband: 0.02
-j2j3_direction_smoothing: 0.02
-# 只放大/缩小 J3 的重力补偿力矩，不影响 J3 位置解耦。
-j2j3_j3_gravity_effort_scale: 1.11
+# J2/J3 解耦多项式：
+#   joint3_decoupled = raw_joint3 + correction(raw_joint2)
+#   correction = coupling * joint2 - offset + a3*joint2^3 + a2*joint2^2 + a1*joint2 + a0
+# 当前硬件接口使用一套固定多项式，不根据运动方向切换参数。
+j2j3_coupling: 0.0
+j2j3_j3_scale: 1.0
+j2j3_j3_offset: 0.0
+j2j3_scale_mode: divide
+j2j3_poly_a3: -0.2522016902
+j2j3_poly_a2: 0.2727246110
+j2j3_poly_a1: 0.9715433593
+j2j3_poly_a0: -1.1654617560
 
-# 重力补偿输出比例。assist 模式下叠加到正常控制输出；gravity_only 模式下只输出重力项。
+# 控制器重力补偿输出比例。
 gravity_effort_scale: 1.1
 
 arm_control_gains:

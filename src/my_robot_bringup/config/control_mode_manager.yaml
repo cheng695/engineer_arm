@@ -1,0 +1,27 @@
+# control_mode_manager 的 controller 名称映射。
+#
+# 左侧是 ControlModeManager 使用的参数名；
+# 右侧必须与 arm_controllers.yaml 中的 controller 实例名称一致。
+control_mode_manager:
+  ros__parameters:
+    # 固定位姿和 MoveIt 轨迹使用的 controller。
+    trajectory_controller: arm_trajectory_controller
+
+    # 关节速度控制使用的 controller。
+    joint_controller: arm_joint_controller
+
+    # HOLD / PAUSED 时使用的位置保持 controller。
+    hold_controller: arm_hold_controller
+
+    # 重力测试模式下使用的 controller。
+    gravity_controller: arm_gravity_controller
+
+    # 普通启动保持 false；重力测试启动文件会覆盖为 true。
+    gravity_test_mode: false
+
+    # 运动过程中是否保持重力 controller 激活。
+    gravity_always_on: false
+
+    # 笛卡尔速度控制使用的 controller。
+    # 当前需要项目中存在对应的 DLS controller 插件。
+    cartesian_controller: arm_cartesian_controller
