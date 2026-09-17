@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include <Eigen/Geometry>
 #include "dls/dls_solver.hpp"
 #include <pinocchio/multibody/model.hpp>
 #include "controller_interface/controller_interface.hpp"
@@ -50,12 +51,20 @@ private:
   JointDiagnostics diagnostics_;
   realtime_tools::RealtimeBuffer<geometry_msgs::msg::TwistStamped> command_buffer_;
   void commandCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+  bool compute_tip_pose(
+    const std::vector<double>& positions,
+    Eigen::Vector3d& position,
+    Eigen::Matrix3d& rotation);
 
   std::vector<std::string> joint_names_;
   std::string command_interface_name_{"position"};
   std::string command_topic_{"~/twist_cmd"};
   std::string robot_description_;
   std::string tip_link_{"tool_link"};
+  double cartesian_position_kp_{1.5};
+  double cartesian_orientation_kp_{1.5};
+  double cartesian_linear_correction_limit_{0.05};
+  double cartesian_angular_correction_limit_{0.3};
 
   geometry_msgs::msg::TwistStamped last_command_{};
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr command_sub_;
@@ -64,7 +73,9 @@ private:
   std::vector<double> lower_limits_;
   std::vector<double> upper_limits_;
   bool target_initialized_{false};
-  bool has_activated_{false};
+  bool reference_pose_initialized_{false};
+  Eigen::Vector3d reference_position_{Eigen::Vector3d::Zero()};
+  Eigen::Quaterniond reference_orientation_{Eigen::Quaterniond::Identity()};
   double command_timeout_{0.1};
   std::atomic<bool> command_received_{false};
   std::atomic<std::int64_t> last_command_time_ns_{0};
@@ -72,7 +83,6 @@ private:
   std::unique_ptr<pinocchio::Model> model_;
   std::unique_ptr<pinocchio::Data> diagnostics_data_;
   Eigen::VectorXd diagnostics_q_actual_;
-  Eigen::VectorXd diagnostics_q_target_;
   DlsSolver dls_solver_;
 };
 

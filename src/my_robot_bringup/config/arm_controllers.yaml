@@ -82,6 +82,7 @@ arm_hold_controller:
 arm_cartesian_controller:
   ros__parameters:
     command_topic: /arm/command/cartesian_twist
+    tip_link: gripper_center
     joints:
       - joint1
       - joint2
@@ -95,6 +96,10 @@ arm_cartesian_controller:
       - position
       - velocity
     command_timeout: 0.1
+    cartesian_position_kp: 10.0
+    cartesian_orientation_kp: 10.0
+    cartesian_linear_correction_limit: 0.1
+    cartesian_angular_correction_limit: 1.0
 
 arm_gravity_controller:
   ros__parameters:

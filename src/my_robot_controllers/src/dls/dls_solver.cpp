@@ -159,7 +159,7 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
         qdot.noalias() = jacobian.transpose() * ldlt.solve(twist);
     }
 
-    // 对 DLS 输出的关节速度进行安全限制：限制加速度、最大速度和关节位置限位。
+    // 对 DLS 输出的关节速度进行安全限制：限制整组加速度、最大速度和关节位置限位。
     // 单位分别为 rad/s²、rad/s 和 rad。
     constexpr double max_acceleration = 30.0;
     constexpr double max_velocity = 6.0;
@@ -170,8 +170,7 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
 
     std::vector<Output> output;
     output.reserve(n_joints_);
-    // 先限制每个关节的速度，再判断整组速度是否仍能实现期望末端运动。
-    // 任一关节被限位方向阻挡时，整组关节停止，避免末端轨迹发生变形。
+    // 保存未经过运动学安全限制的 DLS 解，用于区分“奇异/不可实现”和“安全缩放”。
     bool limit_blocked = false;
     blocked_joint_ = -1;
     blocked_at_upper_limit_ = false;
@@ -180,20 +179,48 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
     raw_tracking_ratio_ = target_squared_norm > 1e-12
         ? twist.dot(jacobian * qdot) / target_squared_norm : 1.0;
 
+    const Eigen::VectorXd raw_qdot = qdot;
+    // 对整组关节使用同一个缩放因子，避免逐关节限幅改变末端运动方向。
+    // 速度从上一周期值平滑过渡到 DLS 解，因此启动、停止和换向都不会产生突变。
+    double velocity_scale = 1.0;
+    const auto is_feasible = [&](double scale) {
+        for (size_t i = 0; i < n_joints_; ++i)
+        {
+            const int vi = vIndex(i);
+            const double velocity = vel_last_[vi] + scale * (raw_qdot[vi] - vel_last_[vi]);
+            if (std::abs(velocity) > max_velocity + 1e-9)
+                return false;
+            if (std::abs(velocity - vel_last_[vi]) > max_delta + 1e-9)
+                return false;
+        }
+        return true;
+    };
+    if (!is_feasible(1.0))
+    {
+        double lower = 0.0;
+        double upper = 1.0;
+        // vel_last_ 本身应始终满足最大速度，scale=0 是安全的可行点。
+        for (int iteration = 0; iteration < 24; ++iteration)
+        {
+            const double middle = 0.5 * (lower + upper);
+            if (is_feasible(middle))
+                lower = middle;
+            else
+                upper = middle;
+        }
+        velocity_scale = lower;
+    }
+    for (size_t i = 0; i < n_joints_; ++i)
+    {
+        const int vi = vIndex(i);
+        qdot[vi] = vel_last_[vi] + velocity_scale * (raw_qdot[vi] - vel_last_[vi]);
+    }
+
     for (size_t i = 0; i < n_joints_; ++i) 
     {
         const int qi = qIndex(i);
         const int vi = vIndex(i);
-
-        // 速度变化不能超过加速度限制，避免关节速度指令突变。
-        double velocity = std::clamp(
-            qdot[vi], 
-            vel_last_[vi] - max_delta, 
-            vel_last_[vi] + max_delta);
-
-        // 限制关节速度绝对值，防止输出超过最大速度。
-        velocity = std::clamp(velocity, -max_velocity, max_velocity);
-        qdot[vi] = velocity;
+        const double velocity = qdot[vi];
 
         // 接近下限且速度指向下限时，标记整组运动被限位阻挡。
         if (model_->lowerPositionLimit[qi] > -1e10 &&

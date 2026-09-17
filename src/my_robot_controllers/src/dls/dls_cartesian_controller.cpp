@@ -27,6 +27,12 @@ controller_interface::CallbackReturn DlsCartesianController::on_init()
         robot_description_ = auto_declare<std::string>("robot_description", "");
         tip_link_ = auto_declare<std::string>("tip_link", "tool_link");
         command_timeout_ = auto_declare<double>("command_timeout", 0.1);
+        cartesian_position_kp_ = auto_declare<double>("cartesian_position_kp", 1.5);
+        cartesian_orientation_kp_ = auto_declare<double>("cartesian_orientation_kp", 1.5);
+        cartesian_linear_correction_limit_ = auto_declare<double>(
+            "cartesian_linear_correction_limit", 0.05);
+        cartesian_angular_correction_limit_ = auto_declare<double>(
+            "cartesian_angular_correction_limit", 0.3);
     } 
     catch (const std::exception&) 
     {
@@ -50,6 +56,12 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
     get_node()->get_parameter("robot_description", robot_description_);
     get_node()->get_parameter("tip_link", tip_link_);
     get_node()->get_parameter("command_timeout", command_timeout_);
+    get_node()->get_parameter("cartesian_position_kp", cartesian_position_kp_);
+    get_node()->get_parameter("cartesian_orientation_kp", cartesian_orientation_kp_);
+    get_node()->get_parameter(
+        "cartesian_linear_correction_limit", cartesian_linear_correction_limit_);
+    get_node()->get_parameter(
+        "cartesian_angular_correction_limit", cartesian_angular_correction_limit_);
 
     if (command_interface_name_ != "position") 
     {
@@ -68,6 +80,16 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
     if (!std::isfinite(command_timeout_) || command_timeout_ <= 0.0)
     {
         RCLCPP_ERROR(get_node()->get_logger(), "command_timeout 必须为正数");
+        return controller_interface::CallbackReturn::ERROR;
+    }
+    if (!std::isfinite(cartesian_position_kp_) || cartesian_position_kp_ < 0.0 ||
+        !std::isfinite(cartesian_orientation_kp_) || cartesian_orientation_kp_ < 0.0 ||
+        !std::isfinite(cartesian_linear_correction_limit_) ||
+        cartesian_linear_correction_limit_ < 0.0 ||
+        !std::isfinite(cartesian_angular_correction_limit_) ||
+        cartesian_angular_correction_limit_ < 0.0)
+    {
+        RCLCPP_ERROR(get_node()->get_logger(), "笛卡尔控制参数必须为非负有限值");
         return controller_interface::CallbackReturn::ERROR;
     }
     try 
@@ -97,8 +119,8 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
             upper_limits_[i] = model_->upperPositionLimit[qi];
         }
         target_initialized_ = false;
+        reference_pose_initialized_ = false;
         diagnostics_q_actual_ = Eigen::VectorXd::Zero(model_->nq);
-        diagnostics_q_target_ = Eigen::VectorXd::Zero(model_->nq);
     } 
     catch (const std::exception& e) 
     {
@@ -128,31 +150,75 @@ controller_interface::CallbackReturn DlsCartesianController::on_activate(
         return controller_interface::CallbackReturn::ERROR;
     }
 
-    // 首次使用反馈位置，重新激活时继承已有位置目标。
+    // 每次激活都从实际反馈接管，避免重新激活时沿用过期的位置目标。
     for (size_t i = 0; i < joint_names_.size(); ++i) 
     {
-        const double previous_target = command_interfaces_[i].get_value();
         const double feedback = state_interfaces_[2 * i].get_value();
-        target_positions_[i] = has_activated_ && std::isfinite(previous_target)
-            ? previous_target : feedback;
+        target_positions_[i] = feedback;
+        positions_[i] = feedback;
         if (!std::isfinite(target_positions_[i]))
             return controller_interface::CallbackReturn::ERROR;
         command_interfaces_[i].set_value(target_positions_[i]);
     }
     target_initialized_ = true;
+    Eigen::Vector3d position;
+    Eigen::Matrix3d rotation;
+    if (!compute_tip_pose(positions_, position, rotation))
+        return controller_interface::CallbackReturn::ERROR;
+    reference_position_ = position;
+    reference_orientation_ = Eigen::Quaterniond(rotation).normalized();
+    reference_pose_initialized_ = true;
     dls_solver_.reset_velocity_history();
     last_command_ = geometry_msgs::msg::TwistStamped{};
     command_received_ = false;
     last_command_time_ns_ = 0;
-    has_activated_ = true;
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn DlsCartesianController::on_deactivate(
   const rclcpp_lifecycle::State&)
 {
-    // 保留最后位置指令，供 HoldController 接管。
+    // 失活前将位置目标收回当前反馈，避免下次激活产生位置跳变。
+    for (size_t i = 0; i < joint_names_.size() && i < state_interfaces_.size() / 2; ++i)
+    {
+        const double feedback = state_interfaces_[2 * i].get_value();
+        if (std::isfinite(feedback))
+        {
+            target_positions_[i] = feedback;
+            if (i < command_interfaces_.size())
+                command_interfaces_[i].set_value(feedback);
+        }
+    }
+    reference_pose_initialized_ = false;
     return controller_interface::CallbackReturn::SUCCESS;
+}
+
+bool DlsCartesianController::compute_tip_pose(
+  const std::vector<double>& positions,
+  Eigen::Vector3d& position,
+  Eigen::Matrix3d& rotation)
+{
+    if (!model_ || !diagnostics_data_ || !model_->existFrame(tip_link_) ||
+        positions.size() != joint_names_.size())
+        return false;
+
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
+    for (size_t i = 0; i < joint_names_.size(); ++i)
+    {
+        const auto id = model_->getJointId(joint_names_[i]);
+        if (id == 0 || id >= model_->joints.size() ||
+            model_->joints[id].nq() != 1 ||
+            model_->joints[id].idx_q() >= model_->nq ||
+            !std::isfinite(positions[i]))
+            return false;
+        q[model_->joints[id].idx_q()] = positions[i];
+    }
+    pinocchio::forwardKinematics(*model_, *diagnostics_data_, q);
+    pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
+    const auto& placement = diagnostics_data_->oMf[model_->getFrameId(tip_link_)];
+    position = placement.translation();
+    rotation = placement.rotation();
+    return position.allFinite() && rotation.allFinite();
 }
 
 controller_interface::return_type DlsCartesianController::update(
@@ -170,11 +236,21 @@ controller_interface::return_type DlsCartesianController::update(
     {
         positions_[i] = state_interfaces_[2 * i].get_value();
     }
-    // 首次运行时将位置目标对齐到实际位置，避免控制器启动时产生跳变。
+    // 首次运行时将位置目标和 TCP 参考位姿对齐到实际状态，避免启动跳变。
     if (!target_initialized_) 
     {
         target_positions_ = positions_;
         target_initialized_ = true;
+    }
+    Eigen::Vector3d actual_position;
+    Eigen::Matrix3d actual_rotation;
+    if (!compute_tip_pose(positions_, actual_position, actual_rotation))
+        return controller_interface::return_type::ERROR;
+    if (!reference_pose_initialized_)
+    {
+        reference_position_ = actual_position;
+        reference_orientation_ = Eigen::Quaterniond(actual_rotation).normalized();
+        reference_pose_initialized_ = true;
     }
     // 将末端笛卡尔指令组装为 6 维 Twist：线速度 xyz + 角速度 xyz。
     const auto now = std::chrono::steady_clock::now();
@@ -192,12 +268,54 @@ controller_interface::return_type DlsCartesianController::update(
         // 命令超时后使用零 Twist，使位置目标停在当前位置附近。
         last_command_ = geometry_msgs::msg::TwistStamped{};
     }
-    const std::array<double, 6> twist{
+    const std::array<double, 6> joystick_twist{
         last_command_.twist.linear.x, last_command_.twist.linear.y,
         last_command_.twist.linear.z, last_command_.twist.angular.x,
         last_command_.twist.angular.y, last_command_.twist.angular.z};
     // 使用本次控制周期的实际时长，避免固定周期与调度周期不一致。
     const double dt = std::max(1e-6, period.seconds());
+
+    // 摇杆速度在 TCP 局部坐标系中积分为参考位姿；松杆后参考位姿冻结。
+    if (command_valid)
+    {
+        const Eigen::Vector3d local_linear(
+            joystick_twist[0], joystick_twist[1], joystick_twist[2]);
+        const Eigen::Vector3d local_angular(
+            joystick_twist[3], joystick_twist[4], joystick_twist[5]);
+        reference_position_ += actual_rotation * local_linear * dt;
+        const double angle = local_angular.norm() * dt;
+        if (angle > 1e-12)
+        {
+            reference_orientation_ = reference_orientation_ *
+                Eigen::Quaterniond(Eigen::AngleAxisd(angle, local_angular.normalized()));
+            reference_orientation_.normalize();
+        }
+    }
+
+    // 用当前 TCP 位姿误差生成局部坐标系修正速度，使参考轨迹和实际末端重新对齐。
+    const Eigen::Vector3d position_error_local =
+        actual_rotation.transpose() * (reference_position_ - actual_position);
+    Eigen::Vector3d linear_correction = cartesian_position_kp_ * position_error_local;
+    if (linear_correction.norm() > cartesian_linear_correction_limit_ &&
+        linear_correction.norm() > 1e-12)
+        linear_correction *= cartesian_linear_correction_limit_ / linear_correction.norm();
+
+    const Eigen::Matrix3d orientation_error_rotation =
+        actual_rotation.transpose() * reference_orientation_.toRotationMatrix();
+    const Eigen::AngleAxisd orientation_error_angle_axis(orientation_error_rotation);
+    Eigen::Vector3d angular_correction = cartesian_orientation_kp_ *
+        orientation_error_angle_axis.angle() * orientation_error_angle_axis.axis();
+    if (angular_correction.norm() > cartesian_angular_correction_limit_ &&
+        angular_correction.norm() > 1e-12)
+        angular_correction *= cartesian_angular_correction_limit_ / angular_correction.norm();
+
+    const std::array<double, 6> twist{
+        joystick_twist[0] + linear_correction.x(),
+        joystick_twist[1] + linear_correction.y(),
+        joystick_twist[2] + linear_correction.z(),
+        joystick_twist[3] + angular_correction.x(),
+        joystick_twist[4] + angular_correction.y(),
+        joystick_twist[5] + angular_correction.z()};
 
     // DLS 根据当前关节角度和末端 Twist，求解各关节期望速度。
     const auto output = dls_solver_.Update(twist, positions_, dt);
@@ -236,20 +354,16 @@ controller_interface::return_type DlsCartesianController::update(
     {
         const auto frame_id = model_->getFrameId(tip_link_);
         diagnostics_q_actual_.setZero();
-        diagnostics_q_target_.setZero();
         for (size_t i = 0; i < joint_names_.size(); ++i)
         {
             const auto joint_id = model_->getJointId(joint_names_[i]);
             const auto q_index = model_->joints[joint_id].idx_q();
             diagnostics_q_actual_[q_index] = positions_[i];
-            diagnostics_q_target_[q_index] = target_positions_[i];
         }
         pinocchio::forwardKinematics(*model_, *diagnostics_data_, diagnostics_q_actual_);
         pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
         const auto actual_center = diagnostics_data_->oMf[frame_id].translation();
-        pinocchio::forwardKinematics(*model_, *diagnostics_data_, diagnostics_q_target_);
-        pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
-        const auto target_center = diagnostics_data_->oMf[frame_id].translation();
+        const auto target_center = reference_position_;
         diagnostics_.cartesian(
             twist,
             {target_center.x(), target_center.y(), target_center.z()},
