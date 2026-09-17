@@ -15,10 +15,17 @@ MockArmHardwareInterface::~MockArmHardwareInterface()
 void MockArmHardwareInterface::setup_internal_node()
 {
     internal_node_ = rclcpp::Node::make_shared("mock_arm_hw_internal");
+    enable_pub_ = internal_node_->create_publisher<std_msgs::msg::Bool>(
+        "/arm/command/motor_enable", 10);
     ready_pub_ = internal_node_->create_publisher<std_msgs::msg::Bool>(
         "/arm/state/hardware_ready", 10);
     ready_timer_ = internal_node_->create_wall_timer(
         std::chrono::milliseconds(20), [this] {
+            // 仿真没有真实电机使能流程，持续发送使能状态，确保遥控接入后可直接控制。
+            std_msgs::msg::Bool enable_message;
+            enable_message.data = true;
+            enable_pub_->publish(enable_message);
+
             std_msgs::msg::Bool message;
             message.data = hardware_ready_.load();
             ready_pub_->publish(message);
@@ -39,6 +46,7 @@ void MockArmHardwareInterface::teardown_internal_node()
     }
     spin_executor_.reset();
     ready_timer_.reset();
+    enable_pub_.reset();
     ready_pub_.reset();
     internal_node_.reset();
 }

@@ -14,6 +14,13 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+# MuJoCo is optional so existing real/mock builds remain usable without it.
+set(MUJOCO_ROOT "$ENV{MUJOCO_ROOT}" CACHE PATH "MuJoCo installation prefix")
+find_path(MUJOCO_INCLUDE_DIR mujoco/mujoco.h
+  HINTS "${MUJOCO_ROOT}/include")
+find_library(MUJOCO_LIBRARY NAMES mujoco
+  HINTS "${MUJOCO_ROOT}/lib" "${MUJOCO_ROOT}/bin")
+
 # arm_can is optional — only RealArmHardwareInterface needs it
 find_package(arm_can QUIET)
 
@@ -30,6 +37,13 @@ if(arm_can_FOUND)
   message(STATUS "arm_can FOUND — building RealArmHardwareInterface")
 else()
   message(STATUS "arm_can NOT FOUND — building only MockArmHardwareInterface")
+endif()
+
+if(MUJOCO_INCLUDE_DIR AND MUJOCO_LIBRARY)
+  list(APPEND LIB_SOURCES src/mujoco_arm_hardware_interface.cpp)
+  message(STATUS "MuJoCo FOUND - building MujocoArmHardwareInterface")
+else()
+  message(STATUS "MuJoCo NOT FOUND - MujocoArmHardwareInterface is not built")
 endif()
 
 # Define hardware interface library
@@ -53,11 +67,19 @@ if(arm_can_FOUND)
   ament_target_dependencies(${PROJECT_NAME} arm_can)
 endif()
 
+if(MUJOCO_INCLUDE_DIR AND MUJOCO_LIBRARY)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${MUJOCO_INCLUDE_DIR})
+  target_link_libraries(${PROJECT_NAME} ${MUJOCO_LIBRARY})
+endif()
+
 # Use target_link_libraries for non-ament packages
 # Export plugins
 pluginlib_export_plugin_description_file(hardware_interface mock_arm_hardware_interface.xml)
 if(arm_can_FOUND)
   pluginlib_export_plugin_description_file(hardware_interface real_arm_hardware_interface.xml)
+endif()
+if(MUJOCO_INCLUDE_DIR AND MUJOCO_LIBRARY)
+  pluginlib_export_plugin_description_file(hardware_interface mujoco_arm_hardware_interface.xml)
 endif()
 
 # Install

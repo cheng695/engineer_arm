@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false gravity_compensation_mode:=off gravity_effort_scale:=0.0 j2j3_coupling:=0.0 j2j3_j3_scale:=1.0 j2j3_j3_offset:=0.0 j2j3_scale_mode:=divide j2j3_poly_a3:=0.0 j2j3_poly_a2:=0.0 j2j3_poly_a1:=0.0 j2j3_poly_a0:=0.0 joint1_kp:=120.0 joint1_kd:=3.0 joint2_kp:=240.0 joint2_kd:=3.0 joint3_kp:=240.0 joint3_kd:=3.0 joint4_kp:=120.0 joint4_kd:=3.0 joint5_kp:=120.0 joint5_kd:=3.0 joint6_kp:=120.0 joint6_kd:=1.0 joint7_kp:=60.0 joint7_kd:=1.0 joint_right_finger_kp:=60.0 joint_right_finger_kd:=1.0 active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
+  <xacro:macro name="arm_ros2_control" params="name arm_version:=v1_0 use_mock_hardware:=false use_mujoco_hardware:=false mujoco_model_path:='' gravity_compensation_mode:=off gravity_effort_scale:=0.0 j2j3_coupling:=0.0 j2j3_j3_scale:=1.0 j2j3_j3_offset:=0.0 j2j3_scale_mode:=divide j2j3_poly_a3:=0.0 j2j3_poly_a2:=0.0 j2j3_poly_a1:=0.0 j2j3_poly_a0:=0.0 joint1_kp:=120.0 joint1_kd:=3.0 joint2_kp:=240.0 joint2_kd:=3.0 joint3_kp:=240.0 joint3_kd:=3.0 joint4_kp:=120.0 joint4_kd:=3.0 joint5_kp:=120.0 joint5_kd:=3.0 joint6_kp:=120.0 joint6_kd:=1.0 joint7_kp:=60.0 joint7_kd:=1.0 joint_right_finger_kp:=60.0 joint_right_finger_kd:=1.0 active_real_joints:='' can0_interface:=can0 can1_interface:=can1 robot_description_file:=/tmp/robot_description.urdf">
     <xacro:property name="is_arm_v1_1" value="${arm_version == 'v1_1' or arm_version == 'v1.1' or arm_version == '1.1' or arm_version == 1.1}"/>
     <ros2_control name="${name}" type="system">
       <hardware>
-        <xacro:if value="${use_mock_hardware}">
+        <xacro:if value="${use_mujoco_hardware}">
+          <plugin>arm_hardware_interface/MujocoArmHardwareInterface</plugin>
+        </xacro:if>
+        <xacro:if value="${not use_mujoco_hardware and use_mock_hardware}">
           <plugin>arm_hardware_interface/MockArmHardwareInterface</plugin>
         </xacro:if>
-        <xacro:unless value="${use_mock_hardware}">
+        <xacro:if value="${not use_mujoco_hardware and not use_mock_hardware}">
           <plugin>arm_hardware_interface/RealArmHardwareInterface</plugin>
-        </xacro:unless>
+        </xacro:if>
         <param name="robot_description">${robot_description_file}</param>
+        <param name="mujoco_model_path">${mujoco_model_path}</param>
         <param name="gravity_compensation_mode">${gravity_compensation_mode}</param>
         <param name="gravity_effort_scale">${gravity_effort_scale}</param>
         <param name="active_real_joints">${active_real_joints}</param>

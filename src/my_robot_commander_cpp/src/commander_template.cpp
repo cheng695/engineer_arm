@@ -155,12 +155,12 @@ private:
         auto msg = std::make_unique<TwistStamped>();
         msg->header.stamp = node_->now();
 
-        msg->twist.linear.x  = -remote_.x()    * 0.3;
-        msg->twist.linear.y  = -remote_.y()    * 0.3;
-        msg->twist.linear.z  = remote_.z()     * 0.3;
-        msg->twist.angular.x = remote_.roll()  * 1.0;
-        msg->twist.angular.y = remote_.pitch() * 1.0;
-        msg->twist.angular.z = -remote_.yaw()  * 1.0;
+        msg->twist.linear.x  = -remote_.x()    * 0.1;
+        msg->twist.linear.y  = -remote_.y()    * 0.1;
+        msg->twist.linear.z  = remote_.z()     * 0.1;
+        msg->twist.angular.x = remote_.roll()  * 0.5;
+        msg->twist.angular.y = remote_.pitch() * 0.5;
+        msg->twist.angular.z = -remote_.yaw()  * 0.5;
 
         // 始终发 DLS
         auto dls_msg = std::make_unique<TwistStamped>(*msg);
@@ -180,7 +180,7 @@ private:
         };
 
         auto msg = std::make_unique<Float64MultiArray>();
-        constexpr double k = 2.5;
+        constexpr double k = 1.0f;
         msg->data = {
             k * joint_cmds[0],
             k * joint_cmds[1],

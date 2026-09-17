@@ -6,6 +6,8 @@
   <xacro:arg name="chassis_version" default="v1_0"/>
   <xacro:arg name="gripper_version" default="v1_0"/>
   <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="use_mujoco_hardware" default="false"/>
+  <xacro:arg name="mujoco_model_path" default=""/>
   <xacro:arg name="gravity_compensation_mode" default="off"/>
   <xacro:arg name="gravity_effort_scale" default="0.0"/>
   <xacro:arg name="j2j3_coupling" default="0.0"/>
@@ -52,6 +54,8 @@
     name="ArmControl"
     arm_version="$(arg arm_version)"
     use_mock_hardware="$(arg use_mock_hardware)"
+    use_mujoco_hardware="$(arg use_mujoco_hardware)"
+    mujoco_model_path="$(arg mujoco_model_path)"
     gravity_compensation_mode="$(arg gravity_compensation_mode)"
     gravity_effort_scale="$(arg gravity_effort_scale)"
     j2j3_coupling="$(arg j2j3_coupling)"

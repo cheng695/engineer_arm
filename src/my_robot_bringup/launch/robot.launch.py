@@ -36,6 +36,8 @@ def generate_launch_description():
     chassis_version = LaunchConfiguration('chassis_version', default=robot_version)
     gripper_version = LaunchConfiguration('gripper_version', default=robot_version)
     use_mock_hardware = LaunchConfiguration('use_mock_hardware', default='false')
+    use_mujoco_hardware = LaunchConfiguration('use_mujoco_hardware', default='false')
+    mujoco_model_path = LaunchConfiguration('mujoco_model_path', default='')
     gravity_compensation_mode = LaunchConfiguration('gravity_compensation_mode', default='off')
     gravity_effort_scale = LaunchConfiguration('gravity_effort_scale', default='1.0')
     active_real_joints = LaunchConfiguration('active_real_joints', default='')
@@ -96,6 +98,8 @@ def generate_launch_description():
             f"chassis_version:={chassis_version.perform(context)}",
             f"gripper_version:={gripper_version.perform(context)}",
             f"use_mock_hardware:={use_mock_hardware.perform(context)}",
+            f"use_mujoco_hardware:={use_mujoco_hardware.perform(context)}",
+            f"mujoco_model_path:={mujoco_model_path.perform(context)}",
             f"gravity_compensation_mode:={gravity_compensation_mode.perform(context)}",
             f"gravity_effort_scale:={gravity_effort_scale.perform(context)}",
             *[f"{key}:={value}" for key, value in j2j3_args.items()],
@@ -114,6 +118,8 @@ def generate_launch_description():
             ' chassis_version:=', chassis_version,
             ' gripper_version:=', gripper_version,
             ' use_mock_hardware:=', use_mock_hardware,
+            ' use_mujoco_hardware:=', use_mujoco_hardware,
+            ' mujoco_model_path:=', mujoco_model_path,
             ' gravity_compensation_mode:=', gravity_compensation_mode,
             ' gravity_effort_scale:=', gravity_effort_scale,
             *sum(([f' {key}:=', value] for key, value in j2j3_args.items()), []),
@@ -131,6 +137,8 @@ def generate_launch_description():
                 file_path=description_xacro_file,
                 mappings={
                     "use_mock_hardware": use_mock_hardware,
+                    "use_mujoco_hardware": use_mujoco_hardware,
+                    "mujoco_model_path": mujoco_model_path,
                     "arm_version": arm_version,
                     "chassis_version": chassis_version,
                     "gripper_version": gripper_version,
@@ -295,6 +303,10 @@ def generate_launch_description():
             description='Use simulation clock if true'),
         DeclareLaunchArgument('use_mock_hardware', default_value='false',
             description='Use mock hardware (simulation) if true'),
+        DeclareLaunchArgument('use_mujoco_hardware', default_value='false',
+            description='Use MuJoCo dynamic simulation hardware (takes precedence over mock/real)'),
+        DeclareLaunchArgument('mujoco_model_path', default_value='',
+            description='Path to the MuJoCo MJCF/XML model'),
         DeclareLaunchArgument('robot', default_value='v1_0',
             description='Robot description variant shortcut: v1_0/v1_1 or v1.0/v1.1'),
         DeclareLaunchArgument('arm_version', default_value=robot_version,
