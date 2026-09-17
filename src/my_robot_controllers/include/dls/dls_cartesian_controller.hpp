@@ -98,7 +98,6 @@ private:
 
   std::unique_ptr<pinocchio::Model> model_;
   std::unique_ptr<pinocchio::Data> diagnostics_data_;
-  Eigen::VectorXd diagnostics_q_actual_;
   DlsSolver dls_solver_;
 };
 

@@ -67,6 +67,10 @@ install(FILES my_robot_controllers.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS scripts/plot_tcp_tracking.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(

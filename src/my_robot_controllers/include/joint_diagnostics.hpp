@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include "geometry_msgs/msg/pose_array.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace my_robot_controllers {
@@ -10,10 +11,16 @@ namespace my_robot_controllers {
 class JointDiagnostics {
 public:
     template<class Node>
-    void configure(const std::shared_ptr<Node>& node, size_t count, std::string mode) {
+    void configure(const std::shared_ptr<Node>& node, size_t count, std::string mode,
+                   std::string cartesian_frame = "base_link") {
         positions_.resize(count); feedback_.resize(count); velocities_.resize(count);
         mode_ = std::move(mode);
-        timer_ = node->create_wall_timer(std::chrono::milliseconds(100), [this, logger = node->get_logger()] {
+        cartesian_frame_ = std::move(cartesian_frame);
+        if (mode_ == "DLS")
+            tcp_tracking_pub_ = node->template create_publisher<geometry_msgs::msg::PoseArray>(
+                "/arm_debug/tcp_tracking", 10);
+        timer_ = node->create_wall_timer(std::chrono::milliseconds(100),
+            [this, logger = node->get_logger()] {
             std::lock_guard<std::mutex> lock(mutex_);
             if (!pending_) return;
             for (size_t i = 0; i < positions_.size(); ++i)
@@ -46,18 +53,51 @@ public:
             }
             pending_ = false;
         });
+        if (tcp_tracking_pub_)
+        {
+            pose_timer_ = node->create_wall_timer(std::chrono::milliseconds(20),
+                [this, clock = node->get_clock()] {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (!pose_pending_) return;
+                geometry_msgs::msg::PoseArray message;
+                message.header.stamp = clock->now();
+                message.header.frame_id = cartesian_frame_;
+                message.poses.resize(2);
+                message.poses[0].position.x = target_center_[0];
+                message.poses[0].position.y = target_center_[1];
+                message.poses[0].position.z = target_center_[2];
+                message.poses[0].orientation.x = target_orientation_[0];
+                message.poses[0].orientation.y = target_orientation_[1];
+                message.poses[0].orientation.z = target_orientation_[2];
+                message.poses[0].orientation.w = target_orientation_[3];
+                message.poses[1].position.x = actual_center_[0];
+                message.poses[1].position.y = actual_center_[1];
+                message.poses[1].position.z = actual_center_[2];
+                message.poses[1].orientation.x = actual_orientation_[0];
+                message.poses[1].orientation.y = actual_orientation_[1];
+                message.poses[1].orientation.z = actual_orientation_[2];
+                message.poses[1].orientation.w = actual_orientation_[3];
+                tcp_tracking_pub_->publish(message);
+                pose_pending_ = false;
+            });
+        }
     }
     void cartesian(const std::array<double, 6>& twist,
                    const std::array<double, 3>& target_center,
-                   const std::array<double, 3>& actual_center) {
+                   const std::array<double, 3>& actual_center,
+                   const std::array<double, 4>& target_orientation,
+                   const std::array<double, 4>& actual_orientation) {
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock) return;
         twist_ = twist;
         target_center_ = target_center;
         actual_center_ = actual_center;
+        target_orientation_ = target_orientation;
+        actual_orientation_ = actual_orientation;
         for (size_t i = 0; i < 3; ++i)
             center_error_[i] = target_center_[i] - actual_center_[i];
         pending_ = true;
+        pose_pending_ = true;
     }
     void record(size_t i, double position, double feedback, double velocity) {
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
@@ -94,10 +134,15 @@ private:
     double following_scale_{1.0}, reference_motion_scale_{1.0}, correction_scale_{1.0};
     std::array<double, 6> twist_{};
     std::array<double, 3> target_center_{}, actual_center_{}, center_error_{};
+    std::array<double, 4> target_orientation_{0.0, 0.0, 0.0, 1.0};
+    std::array<double, 4> actual_orientation_{0.0, 0.0, 0.0, 1.0};
     std::mutex mutex_;
     std::vector<double> positions_, feedback_, velocities_;
     std::string mode_;
-    bool pending_{false};
+    std::string cartesian_frame_{"base_link"};
+    bool pending_{false}, pose_pending_{false};
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr tcp_tracking_pub_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr pose_timer_;
 };
 }

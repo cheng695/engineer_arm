@@ -152,7 +152,6 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
         }
         target_initialized_ = false;
         reference_pose_initialized_ = false;
-        diagnostics_q_actual_ = Eigen::VectorXd::Zero(model_->nq);
     } 
     catch (const std::exception& e) 
     {
@@ -497,25 +496,15 @@ controller_interface::return_type DlsCartesianController::update(
         }
     }
 
-    if (should_log && diagnostics_data_ && model_->existFrame(tip_link_))
-    {
-        const auto frame_id = model_->getFrameId(tip_link_);
-        diagnostics_q_actual_.setZero();
-        for (size_t i = 0; i < joint_names_.size(); ++i)
-        {
-            const auto joint_id = model_->getJointId(joint_names_[i]);
-            const auto q_index = model_->joints[joint_id].idx_q();
-            diagnostics_q_actual_[q_index] = positions_[i];
-        }
-        pinocchio::forwardKinematics(*model_, *diagnostics_data_, diagnostics_q_actual_);
-        pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
-        const auto actual_center = diagnostics_data_->oMf[frame_id].translation();
-        const auto target_center = reference_position_;
-        diagnostics_.cartesian(
-            twist,
-            {target_center.x(), target_center.y(), target_center.z()},
-            {actual_center.x(), actual_center.y(), actual_center.z()});
-    }
+    const Eigen::Quaterniond actual_orientation(actual_rotation);
+    diagnostics_.cartesian(
+        twist,
+        {reference_position_.x(), reference_position_.y(), reference_position_.z()},
+        {actual_position.x(), actual_position.y(), actual_position.z()},
+        {reference_orientation_.x(), reference_orientation_.y(),
+            reference_orientation_.z(), reference_orientation_.w()},
+        {actual_orientation.x(), actual_orientation.y(),
+            actual_orientation.z(), actual_orientation.w()});
     return controller_interface::return_type::OK;
 }
 
