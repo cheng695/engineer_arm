@@ -12,6 +12,7 @@
 #include "my_robot_control_manager/control_fsm.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
@@ -33,6 +34,7 @@ private:
   void pauseCallback(const std_msgs::msg::Empty::SharedPtr msg);
   void cartesianCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void jointVelocityCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
+  void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
 
   void processEvent(ArmControlEvent event);
   void tryPendingControllerSwitch();
@@ -60,6 +62,7 @@ private:
   std::vector<std::string> trajectory_joints_;
   double trajectory_duration_{3.0};
   std::map<std::string, std::vector<double>> named_targets_;
+  std::map<std::string, double> latest_joint_positions_;
   bool switch_in_progress_{false};
   bool controller_query_in_progress_{false};
   bool pending_switch_valid_{false};
@@ -79,6 +82,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr pause_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cartesian_sub_;
   rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr joint_velocity_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Client<controller_manager_msgs::srv::SwitchController>::SharedPtr switch_client_;
   rclcpp::Client<controller_manager_msgs::srv::ListControllers>::SharedPtr list_client_;

@@ -6,6 +6,8 @@
 #include <stdexcept>
 
 #include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
 #include "pluginlib/class_list_macros.hpp"
 
 namespace my_robot_controllers
@@ -72,6 +74,7 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
     {
         model_ = std::make_unique<pinocchio::Model>();
         pinocchio::urdf::buildModelFromXML(robot_description_, *model_);
+        diagnostics_data_ = std::make_unique<pinocchio::Data>(*model_);
         dls_solver_.Init(*model_, tip_link_, joint_names_, 0.002);
         positions_.assign(joint_names_.size(), 0.0);
         target_positions_.assign(joint_names_.size(), 0.0);
@@ -94,6 +97,8 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
             upper_limits_[i] = model_->upperPositionLimit[qi];
         }
         target_initialized_ = false;
+        diagnostics_q_actual_ = Eigen::VectorXd::Zero(model_->nq);
+        diagnostics_q_target_ = Eigen::VectorXd::Zero(model_->nq);
     } 
     catch (const std::exception& e) 
     {
@@ -123,16 +128,23 @@ controller_interface::CallbackReturn DlsCartesianController::on_activate(
         return controller_interface::CallbackReturn::ERROR;
     }
 
-    // 位置控制激活时从实际位置开始，避免目标角度跳变。
+    // 首次使用反馈位置，重新激活时继承已有位置目标。
     for (size_t i = 0; i < joint_names_.size(); ++i) 
     {
-        target_positions_[i] = state_interfaces_[2 * i].get_value();
+        const double previous_target = command_interfaces_[i].get_value();
+        const double feedback = state_interfaces_[2 * i].get_value();
+        target_positions_[i] = has_activated_ && std::isfinite(previous_target)
+            ? previous_target : feedback;
+        if (!std::isfinite(target_positions_[i]))
+            return controller_interface::CallbackReturn::ERROR;
         command_interfaces_[i].set_value(target_positions_[i]);
     }
     target_initialized_ = true;
+    dls_solver_.reset_velocity_history();
     last_command_ = geometry_msgs::msg::TwistStamped{};
     command_received_ = false;
     last_command_time_ns_ = 0;
+    has_activated_ = true;
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -191,7 +203,9 @@ controller_interface::return_type DlsCartesianController::update(
     const auto output = dls_solver_.Update(twist, positions_, dt);
 
     // 降低日志频率，避免在实时控制循环中频繁输出。
-    diagnostics_.solver(dls_solver_.sigma_min(), dls_solver_.damping(), dls_solver_.blocked());
+    diagnostics_.solver(dls_solver_.sigma_min(), dls_solver_.damping(), dls_solver_.blocked(),
+        dls_solver_.blocked_joint(), dls_solver_.blocked_at_upper_limit(),
+        dls_solver_.task_blocked(), dls_solver_.tracking_ratio(), dls_solver_.raw_tracking_ratio());
     static size_t log_counter = 0;
     const bool should_log = (++log_counter % 50 == 0);
     for (size_t i = 0; i < output.size(); ++i) 
@@ -216,6 +230,30 @@ controller_interface::return_type DlsCartesianController::update(
         {
             diagnostics_.record(i, target_positions_[i], positions_[i], output[i].vel);
         }
+    }
+
+    if (should_log && diagnostics_data_ && model_->existFrame(tip_link_))
+    {
+        const auto frame_id = model_->getFrameId(tip_link_);
+        diagnostics_q_actual_.setZero();
+        diagnostics_q_target_.setZero();
+        for (size_t i = 0; i < joint_names_.size(); ++i)
+        {
+            const auto joint_id = model_->getJointId(joint_names_[i]);
+            const auto q_index = model_->joints[joint_id].idx_q();
+            diagnostics_q_actual_[q_index] = positions_[i];
+            diagnostics_q_target_[q_index] = target_positions_[i];
+        }
+        pinocchio::forwardKinematics(*model_, *diagnostics_data_, diagnostics_q_actual_);
+        pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
+        const auto actual_center = diagnostics_data_->oMf[frame_id].translation();
+        pinocchio::forwardKinematics(*model_, *diagnostics_data_, diagnostics_q_target_);
+        pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
+        const auto target_center = diagnostics_data_->oMf[frame_id].translation();
+        diagnostics_.cartesian(
+            twist,
+            {target_center.x(), target_center.y(), target_center.z()},
+            {actual_center.x(), actual_center.y(), actual_center.z()});
     }
     return controller_interface::return_type::OK;
 }

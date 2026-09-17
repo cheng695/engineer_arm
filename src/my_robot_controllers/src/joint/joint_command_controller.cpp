@@ -116,7 +116,12 @@ controller_interface::CallbackReturn JointCommandController::on_activate(
     }
     for (size_t i = 0; i < joint_names_.size(); ++i) 
     {
-        positions_[i] = state_interfaces_[2 * i].get_value();
+        const double previous_target = command_interfaces_[i].get_value();
+        const double feedback = state_interfaces_[2 * i].get_value();
+        positions_[i] = has_activated_ && std::isfinite(previous_target)
+            ? previous_target : feedback;
+        if (!std::isfinite(positions_[i]))
+            return controller_interface::CallbackReturn::ERROR;
         command_interfaces_[i].set_value(positions_[i]);
         velocity_command_[i] = 0.0;
     }
@@ -124,6 +129,7 @@ controller_interface::CallbackReturn JointCommandController::on_activate(
     target_initialized_ = true;
     command_received_ = false;
     last_command_time_ns_ = 0;
+    has_activated_ = true;
     return controller_interface::CallbackReturn::SUCCESS;
 }
 

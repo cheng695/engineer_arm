@@ -50,7 +50,8 @@ bool MujocoArmHardwareInterface::load_model(const std::string& model_path)
 bool MujocoArmHardwareInterface::configure_joints()
 {
     mujoco_joint_ids_.resize(info_.joints.size(), kNotFound);
-    mujoco_actuator_ids_.resize(info_.joints.size(), kNotFound);
+    mujoco_position_actuator_ids_.resize(info_.joints.size(), kNotFound);
+    mujoco_effort_actuator_ids_.resize(info_.joints.size(), kNotFound);
     mujoco_qpos_addresses_.resize(info_.joints.size(), kNotFound);
     mujoco_dof_addresses_.resize(info_.joints.size(), kNotFound);
 
@@ -65,20 +66,19 @@ bool MujocoArmHardwareInterface::configure_joints()
             return false;
         }
 
-        int actuator_id = mj_name2id(model_, mjOBJ_ACTUATOR, name.c_str());
-        if (actuator_id == kNotFound)
-            actuator_id = mj_name2id(model_, mjOBJ_ACTUATOR, (name + "_actuator").c_str());
-        if (actuator_id == kNotFound)
-            actuator_id = mj_name2id(model_, mjOBJ_ACTUATOR, ("actuator_" + name).c_str());
-        if (actuator_id == kNotFound)
+        const int position_actuator_id = mj_name2id(model_, mjOBJ_ACTUATOR, name.c_str());
+        const int effort_actuator_id = mj_name2id(
+            model_, mjOBJ_ACTUATOR, (name + "_effort").c_str());
+        if (position_actuator_id == kNotFound || effort_actuator_id == kNotFound)
         {
             RCLCPP_ERROR(rclcpp::get_logger("MujocoArmHW"),
-                "MuJoCo 模型中找不到关节 '%s' 对应的 actuator", name.c_str());
+                "MuJoCo 模型中缺少关节 '%s' 的 position 或 effort actuator", name.c_str());
             return false;
         }
 
         mujoco_joint_ids_[i] = joint_id;
-        mujoco_actuator_ids_[i] = actuator_id;
+        mujoco_position_actuator_ids_[i] = position_actuator_id;
+        mujoco_effort_actuator_ids_[i] = effort_actuator_id;
         mujoco_qpos_addresses_[i] = model_->jnt_qposadr[joint_id];
         mujoco_dof_addresses_[i] = model_->jnt_dofadr[joint_id];
     }
@@ -103,25 +103,16 @@ hardware_interface::CallbackReturn MujocoArmHardwareInterface::on_init(
     }
     model_path_ = model_it->second;
 
-    if (const auto it = info.hardware_parameters.find("mujoco_command_mode");
-        it != info.hardware_parameters.end() && !it->second.empty())
-        command_mode_ = it->second;
     if (const auto it = info.hardware_parameters.find("mujoco_simulation_steps");
         it != info.hardware_parameters.end() && !it->second.empty())
         simulation_steps_ = std::max(1, std::stoi(it->second));
-    if (command_mode_ != "position" && command_mode_ != "velocity" && command_mode_ != "effort")
-    {
-        RCLCPP_ERROR(rclcpp::get_logger("MujocoArmHW"),
-            "不支持的 mujoco_command_mode='%s'", command_mode_.c_str());
-        return CallbackReturn::ERROR;
-    }
 
     if (!load_model(model_path_) || !configure_joints())
         return CallbackReturn::ERROR;
 
     RCLCPP_INFO(rclcpp::get_logger("MujocoArmHW"),
-        "MuJoCo 硬件接口初始化完成 (%zu 关节, command_mode=%s, simulation_steps=%d)",
-        info_.joints.size(), command_mode_.c_str(), simulation_steps_);
+        "MuJoCo 硬件接口初始化完成 (%zu 关节, position+effort, simulation_steps=%d)",
+        info_.joints.size(), simulation_steps_);
     return CallbackReturn::SUCCESS;
 }
 
@@ -238,13 +229,12 @@ hardware_interface::return_type MujocoArmHardwareInterface::write(
 
     for (size_t i = 0; i < info_.joints.size(); ++i)
     {
-        double command = 0.0;
-        if (command_mode_ == "position") command = hw_commands_pos_[i];
-        if (command_mode_ == "velocity") command = hw_commands_vel_[i];
-        if (command_mode_ == "effort") command = hw_commands_eff_[i];
-        if (!std::isfinite(command))
-            command = command_mode_ == "position" ? hw_states_pos_[i] : 0.0;
-        data_->ctrl[mujoco_actuator_ids_[i]] = command;
+        const double position_command = std::isfinite(hw_commands_pos_[i])
+            ? hw_commands_pos_[i] : hw_states_pos_[i];
+        const double effort_command = std::isfinite(hw_commands_eff_[i])
+            ? hw_commands_eff_[i] : 0.0;
+        data_->ctrl[mujoco_position_actuator_ids_[i]] = position_command;
+        data_->ctrl[mujoco_effort_actuator_ids_[i]] = effort_command;
     }
 
     for (int step = 0; step < simulation_steps_; ++step)

@@ -55,6 +55,7 @@ private:
     std::vector<double> lower_limits_;
     std::vector<double> upper_limits_;
     bool target_initialized_{false};
+    bool has_activated_{false};
     double command_timeout_{0.1};
     std::atomic<bool> command_received_{false};
     std::atomic<std::int64_t> last_command_time_ns_{0};

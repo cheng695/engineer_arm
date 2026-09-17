@@ -45,7 +45,18 @@ public:
     double sigma_min() const { return sigma_min_; }
     double damping() const { return damping_; }
     bool blocked() const { return blocked_; }
+    /** @brief 重新接管位置指令时，从零指令速度开始加速，清除停用前的历史。 */
+    void reset_velocity_history() { vel_last_.setZero(); }
+    // 记录本周期首个触发限位的关节（控制器顺序，-1 表示没有）。
+    int blocked_joint() const { return blocked_joint_; }
+    bool blocked_at_upper_limit() const { return blocked_at_upper_limit_; }
+    bool task_blocked() const { return task_blocked_; }
+    double tracking_ratio() const { return tracking_ratio_; }
+    double raw_tracking_ratio() const { return raw_tracking_ratio_; }
 private:
+    int blocked_joint_{-1};
+    bool blocked_at_upper_limit_{false}, task_blocked_{false};
+    double tracking_ratio_{1.0}, raw_tracking_ratio_{1.0};
     double sigma_min_{0}, damping_{0};
     bool blocked_{false};
     const pinocchio::Model* model_ = nullptr;   // Pinocchio 模型

@@ -25,8 +25,9 @@ namespace arm_hardware_interface
 /**
  * @brief MuJoCo-backed ros2_control system interface.
  *
- * The controller command is sent to MuJoCo actuators and the state interfaces
- * are filled from MuJoCo qpos/qvel/actuator force after the physics step.
+ * Position commands and effort commands are sent to separate MuJoCo actuators
+ * and are applied together. This lets motion controllers and the gravity
+ * controller run at the same time.
  * This plugin has no CAN dependency and must be selected explicitly.
  */
 class MujocoArmHardwareInterface
@@ -64,10 +65,10 @@ private:
     mjModel_* model_{nullptr};
     mjData_* data_{nullptr};
     std::string model_path_;
-    std::string command_mode_{"position"};
     int simulation_steps_{1};
     std::vector<int> mujoco_joint_ids_;
-    std::vector<int> mujoco_actuator_ids_;
+    std::vector<int> mujoco_position_actuator_ids_;
+    std::vector<int> mujoco_effort_actuator_ids_;
     std::vector<int> mujoco_qpos_addresses_;
     std::vector<int> mujoco_dof_addresses_;
 

@@ -64,11 +64,15 @@ private:
   std::vector<double> lower_limits_;
   std::vector<double> upper_limits_;
   bool target_initialized_{false};
+  bool has_activated_{false};
   double command_timeout_{0.1};
   std::atomic<bool> command_received_{false};
   std::atomic<std::int64_t> last_command_time_ns_{0};
 
   std::unique_ptr<pinocchio::Model> model_;
+  std::unique_ptr<pinocchio::Data> diagnostics_data_;
+  Eigen::VectorXd diagnostics_q_actual_;
+  Eigen::VectorXd diagnostics_q_target_;
   DlsSolver dls_solver_;
 };
 

@@ -208,13 +208,19 @@ def generate_launch_description():
             output="screen",
         )
 
+        # 先合并 YAML 默认值和启动参数，再交给 ROS；避免具名节点参数
+        # 与 launch 生成的通配符参数同时匹配，导致覆盖顺序不符合预期。
+        with open(control_mode_manager_path) as stream:
+            manager_parameters = yaml.safe_load(stream)["control_mode_manager"]["ros__parameters"]
+        manager_parameters.update({
+            'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
+            'gravity_test_mode': ParameterValue(gravity_test_mode, value_type=bool),
+            'gravity_always_on': ParameterValue(gravity_always_on, value_type=bool),
+        })
         control_mode_manager_node = Node(
             package="my_robot_control_manager",
             executable="control_mode_manager",
-            parameters=[moveit_params, control_mode_manager_path,
-                        {'use_sim_time': use_sim_time,
-                         'gravity_test_mode': gravity_test_mode,
-                         'gravity_always_on': gravity_always_on}],
+            parameters=[{**moveit_params, **manager_parameters}],
             output="screen",
         )
 

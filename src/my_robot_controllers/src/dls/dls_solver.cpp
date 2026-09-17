@@ -173,6 +173,12 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
     // 先限制每个关节的速度，再判断整组速度是否仍能实现期望末端运动。
     // 任一关节被限位方向阻挡时，整组关节停止，避免末端轨迹发生变形。
     bool limit_blocked = false;
+    blocked_joint_ = -1;
+    blocked_at_upper_limit_ = false;
+    // 对比限幅前后的实现比例，便于识别正常加速被误判为受限的情况。
+    const double target_squared_norm = twist.squaredNorm();
+    raw_tracking_ratio_ = target_squared_norm > 1e-12
+        ? twist.dot(jacobian * qdot) / target_squared_norm : 1.0;
 
     for (size_t i = 0; i < n_joints_; ++i) 
     {
@@ -194,6 +200,8 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
                 q[qi] <= model_->lowerPositionLimit[qi] + limit_margin && velocity < 0.0) 
         {
             limit_blocked = true;
+            if (blocked_joint_ < 0)
+                blocked_joint_ = static_cast<int>(i);
         }
 
         // 接近上限且速度指向上限时，标记整组运动被限位阻挡。
@@ -201,19 +209,26 @@ std::vector<DlsSolver::Output> DlsSolver::Update(
                 q[qi] >= model_->upperPositionLimit[qi] - limit_margin && velocity > 0.0) 
         {
             limit_blocked = true;
+            if (blocked_joint_ < 0)
+            {
+                blocked_joint_ = static_cast<int>(i);
+                blocked_at_upper_limit_ = true;
+            }
         }
     }
 
     // 用经过速度和加速度限制后的关节速度计算实际可实现的末端 Twist。
     const Eigen::Matrix<double, 6, 1> achieved_twist = jacobian * qdot;
-    const double target_squared_norm = twist.squaredNorm();
     const double tracking_ratio = target_squared_norm > 1e-12
         ? twist.dot(achieved_twist) / target_squared_norm : 1.0;
 
-    // 末端沿目标方向的实现比例过低时，停止所有关节，保持当前姿态。
+    // 用原始 DLS 解判断任务是否可实现。加速和换向期间的限幅后比例
+    // 仅用于诊断，不能据此清零，否则每帧从零起步可能导致永久受限。
     constexpr double minimum_tracking_ratio = 0.1;
     const bool task_blocked = target_squared_norm > 1e-12 &&
-        tracking_ratio < minimum_tracking_ratio;
+        raw_tracking_ratio_ < minimum_tracking_ratio;
+    tracking_ratio_ = tracking_ratio;
+    task_blocked_ = task_blocked;
     
     blocked_ = limit_blocked || task_blocked;
     if (blocked_) 

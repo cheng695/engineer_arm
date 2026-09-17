@@ -110,13 +110,20 @@ def generate_launch_description():
         srdf = os.path.join(get_package_share_directory("my_robot_moveit_config"), "config", "variants", variant, "my_robot.srdf")
         with open(srdf) as stream:
             semantic = stream.read()
+        # 在 Python 中完成覆盖，只传递一份最终管理器参数。
+        manager_config = os.path.join(get_package_share_directory(bringup_package),
+                                     "config", "control_mode_manager.yaml")
+        with open(manager_config) as stream:
+            manager_parameters = yaml.safe_load(stream)["control_mode_manager"]["ros__parameters"]
+        manager_parameters.update({
+            "robot_description_semantic": semantic,
+            "gravity_test_mode": ParameterValue(gravity_test_mode, value_type=bool),
+            "gravity_always_on": ParameterValue(gravity_always_on, value_type=bool),
+        })
         return [
             SetLaunchConfiguration("controllers_file", generated_config),
             Node(package="my_robot_control_manager", executable="control_mode_manager",
-                 parameters=[os.path.join(get_package_share_directory(bringup_package), "config", "control_mode_manager.yaml"),
-                             {"robot_description_semantic": semantic,
-                              "gravity_test_mode": gravity_test_mode,
-                              "gravity_always_on": gravity_always_on}], output="screen"),
+                 parameters=[manager_parameters], output="screen"),
         ]
 
     robot_description_content = Command(

@@ -109,7 +109,7 @@
         <param name="can_bus">${can1_interface}</param>
         <param name="kp">${joint5_kp}</param>
         <param name="kd">${joint5_kd}</param>
-        <param name="lower_limit">${-0.78 if is_arm_v1_1 else -1.5708}</param>
+        <param name="lower_limit">${-1.5708}</param>
         <param name="upper_limit">1.5708</param>
         <param name="direction">-1.0</param>
       </joint>

@@ -110,6 +110,9 @@ ControlModeManager::ControlModeManager(const rclcpp::NodeOptions& options)
     joint_velocity_sub_ = create_subscription<std_msgs::msg::Float64MultiArray>(
         "/arm/command/joint_velocity", 10,
         std::bind(&ControlModeManager::jointVelocityCallback, this, std::placeholders::_1));
+    joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
+        "/joint_states", 10,
+        std::bind(&ControlModeManager::jointStateCallback, this, std::placeholders::_1));
 
     // 发布状态
     publishState();
@@ -233,10 +236,36 @@ void ControlModeManager::sendPendingTrajectory()
 
     FollowJointTrajectory::Goal goal;
     goal.trajectory.joint_names = trajectory_joints_;
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = target_it->second;
-    point.time_from_start = rclcpp::Duration::from_seconds(std::max(0.1, trajectory_duration_));
-    goal.trajectory.points.push_back(point);
+    const double duration = std::max(0.1, trajectory_duration_);
+
+    // 显式加入当前反馈位置作为轨迹起点，避免轨迹控制器激活时
+    // 直接把上一个控制器残留的目标值跳变到新的固定位姿目标。
+    std::vector<double> start_positions;
+    start_positions.reserve(trajectory_joints_.size());
+    bool have_valid_start = true;
+    for (const auto& joint : trajectory_joints_)
+    {
+        const auto state_it = latest_joint_positions_.find(joint);
+        if (state_it == latest_joint_positions_.end() || !std::isfinite(state_it->second))
+        {
+            have_valid_start = false;
+            break;
+        }
+        start_positions.push_back(state_it->second);
+    }
+
+    if (have_valid_start)
+    {
+        trajectory_msgs::msg::JointTrajectoryPoint start_point;
+        start_point.positions = std::move(start_positions);
+        start_point.time_from_start = rclcpp::Duration::from_seconds(std::min(0.1, duration * 0.25));
+        goal.trajectory.points.push_back(std::move(start_point));
+    }
+
+    trajectory_msgs::msg::JointTrajectoryPoint target_point;
+    target_point.positions = target_it->second;
+    target_point.time_from_start = rclcpp::Duration::from_seconds(duration);
+    goal.trajectory.points.push_back(std::move(target_point));
 
     RCLCPP_INFO(get_logger(), "开始执行 SRDF 预设位姿: %s", pending_target_name_.c_str());
     rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions options;
@@ -269,6 +298,22 @@ void ControlModeManager::sendPendingTrajectory()
         }
     };
     trajectory_action_client_->async_send_goal(goal, options);
+}
+
+void ControlModeManager::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+    if (!msg || msg->name.size() != msg->position.size())
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < msg->name.size(); ++i)
+    {
+        if (!msg->name[i].empty() && std::isfinite(msg->position[i]))
+        {
+            latest_joint_positions_[msg->name[i]] = msg->position[i];
+        }
+    }
 }
 
 void ControlModeManager::controlModeCallback(
