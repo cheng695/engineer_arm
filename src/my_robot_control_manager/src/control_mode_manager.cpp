@@ -40,7 +40,7 @@ ControlModeManager::ControlModeManager(const rclcpp::NodeOptions& options)
         "gravity_controller", "arm_gravity_controller");
 
     gravity_test_mode_ = declare_parameter<bool>("gravity_test_mode", false);
-    gravity_always_on_ = declare_parameter<bool>("gravity_always_on", false);
+    gravity_always_on_ = declare_parameter<bool>("gravity_always_on", true);
 
     robot_description_semantic_ = declare_parameter<std::string>(
         "robot_description_semantic", "");
@@ -357,10 +357,9 @@ void ControlModeManager::cartesianCallback(
     {
       processEvent(ArmControlEvent::CartesianRequested);
     }
-    else if (!active_now && cartesian_command_active_)
-    {
-      processEvent(ArmControlEvent::JoystickReleased);
-    }
+    // 笛卡尔零指令时保持 CARTESIAN controller 激活，使其冻结 TCP
+    // 参考位姿并从低增益运动纠偏平滑过渡到保持纠偏。显式暂停、
+    // 轨迹请求、关节模式和失能仍会切换到对应 controller。
     cartesian_command_active_ = active_now;
 }
 

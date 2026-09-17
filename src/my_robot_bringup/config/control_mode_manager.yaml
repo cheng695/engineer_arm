@@ -20,7 +20,7 @@ control_mode_manager:
     gravity_test_mode: false
 
     # 运动过程中是否保持重力 controller 激活。
-    gravity_always_on: false
+    gravity_always_on: true
 
     # 笛卡尔速度控制使用的 controller。
     # 当前需要项目中存在对应的 DLS controller 插件。

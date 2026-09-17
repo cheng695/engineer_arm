@@ -63,7 +63,7 @@ def generate_launch_description():
     can1_interface = LaunchConfiguration("can1_interface", default="can1")
     controllers_file = LaunchConfiguration("controllers_file", default="arm_controllers.yaml")
     gravity_test_mode = LaunchConfiguration("gravity_test_mode", default="false")
-    gravity_always_on = LaunchConfiguration("gravity_always_on", default="false")
+    gravity_always_on = LaunchConfiguration("gravity_always_on", default="true")
     description_xacro_file = os.path.join(
         get_package_share_directory(description_package),
         "urdf",
@@ -240,7 +240,7 @@ def generate_launch_description():
             description="CAN interface for joints 5-7"),
         DeclareLaunchArgument("gravity_test_mode", default_value="false",
             description="Enable gravity-only controller mode"),
-        DeclareLaunchArgument("gravity_always_on", default_value="false",
+        DeclareLaunchArgument("gravity_always_on", default_value="true",
             description="Keep gravity controller active during motion"),
         OpaqueFunction(function=generate_urdf_file),
         *nodes,

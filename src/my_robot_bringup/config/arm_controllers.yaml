@@ -102,6 +102,11 @@ arm_cartesian_controller:
     cartesian_orientation_kd: 0.1
     cartesian_linear_correction_limit: 0.1
     cartesian_angular_correction_limit: 1.0
+    reference_following_error_slow: 0.05
+    reference_following_error_stop: 0.15
+    moving_correction_scale: 0.2
+    holding_correction_scale: 1.0
+    correction_scale_ramp_time: 0.3
 
 arm_gravity_controller:
   ros__parameters:

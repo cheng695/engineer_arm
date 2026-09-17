@@ -31,6 +31,10 @@ public:
                     center_error_[0], center_error_[1], center_error_[2]);
                 RCLCPP_INFO(logger, "DLS状态：sigma_min=%.6f，lambda=%.6f，受限=%s",
                             sigma_, damping_, blocked_ ? "是" : "否");
+                RCLCPP_INFO(logger,
+                    "TCP防跑飞：最大关节跟随误差=%.6f rad，运动缩放=%.3f，参考缩放=%.3f，纠偏增益比例=%.3f",
+                    maximum_joint_following_error_, following_scale_,
+                    reference_motion_scale_, correction_scale_);
                 if (blocked_joint_ >= 0)
                     RCLCPP_INFO(logger,
                         "DLS受限原因：关节限位，首个触发关节序号=%d，方向=%s，保护区=0.05 rad",
@@ -71,12 +75,23 @@ public:
         task_blocked_ = task_blocked; tracking_ratio_ = tracking_ratio;
         raw_tracking_ratio_ = raw_tracking_ratio;
     }
+    void tracking(double maximum_joint_following_error, double following_scale,
+                  double reference_motion_scale, double correction_scale) {
+        std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
+        if (!lock) return;
+        maximum_joint_following_error_ = maximum_joint_following_error;
+        following_scale_ = following_scale;
+        reference_motion_scale_ = reference_motion_scale;
+        correction_scale_ = correction_scale;
+    }
 private:
     double sigma_{0}, damping_{0};
     bool blocked_{false};
     int blocked_joint_{-1};
     bool upper_limit_{false}, task_blocked_{false};
     double tracking_ratio_{1.0}, raw_tracking_ratio_{1.0};
+    double maximum_joint_following_error_{0.0};
+    double following_scale_{1.0}, reference_motion_scale_{1.0}, correction_scale_{1.0};
     std::array<double, 6> twist_{};
     std::array<double, 3> target_center_{}, actual_center_{}, center_error_{};
     std::mutex mutex_;

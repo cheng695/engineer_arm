@@ -57,7 +57,7 @@ private:
   std::string hold_controller_;
   std::string gravity_controller_;
   bool gravity_test_mode_{false};
-  bool gravity_always_on_{false};
+  bool gravity_always_on_{true};
   std::string robot_description_semantic_;
   std::vector<std::string> trajectory_joints_;
   double trajectory_duration_{3.0};

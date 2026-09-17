@@ -74,6 +74,12 @@ private:
   double cartesian_orientation_kd_{0.1};
   double cartesian_linear_correction_limit_{0.05};
   double cartesian_angular_correction_limit_{0.3};
+  double reference_following_error_slow_{0.05};
+  double reference_following_error_stop_{0.15};
+  double moving_correction_scale_{0.2};
+  double holding_correction_scale_{1.0};
+  double correction_scale_ramp_time_{0.3};
+  double correction_scale_{0.2};
 
   geometry_msgs::msg::TwistStamped last_command_{};
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr command_sub_;

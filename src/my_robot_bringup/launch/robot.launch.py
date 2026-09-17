@@ -46,7 +46,7 @@ def generate_launch_description():
     start_commander = LaunchConfiguration('start_commander', default='true')
     start_joy = LaunchConfiguration('start_joy', default='true')
     gravity_test_mode = LaunchConfiguration('gravity_test_mode', default='false')
-    gravity_always_on = LaunchConfiguration('gravity_always_on', default='false')
+    gravity_always_on = LaunchConfiguration('gravity_always_on', default='true')
     joy_dev = LaunchConfiguration('joy_dev', default='/dev/input/js0')
 
     description_pkg = get_package_share_directory("my_robot_description")
@@ -337,7 +337,7 @@ def generate_launch_description():
             description='Start joy_node for gamepad input'),
         DeclareLaunchArgument('gravity_test_mode', default_value='false',
             description='Enable gravity-only controller mode'),
-        DeclareLaunchArgument('gravity_always_on', default_value='false',
+        DeclareLaunchArgument('gravity_always_on', default_value='true',
             description='Keep gravity controller active during motion'),
         DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0',
             description='Joystick device path'),
