@@ -55,6 +55,13 @@ private:
     const std::vector<double>& positions,
     Eigen::Vector3d& position,
     Eigen::Matrix3d& rotation);
+  bool compute_tip_state(
+    const std::vector<double>& positions,
+    const std::vector<double>& velocities,
+    Eigen::Vector3d& position,
+    Eigen::Matrix3d& rotation,
+    Eigen::Vector3d& linear_velocity_local,
+    Eigen::Vector3d& angular_velocity_local);
 
   std::vector<std::string> joint_names_;
   std::string command_interface_name_{"position"};
@@ -62,13 +69,16 @@ private:
   std::string robot_description_;
   std::string tip_link_{"tool_link"};
   double cartesian_position_kp_{1.5};
+  double cartesian_position_kd_{0.1};
   double cartesian_orientation_kp_{1.5};
+  double cartesian_orientation_kd_{0.1};
   double cartesian_linear_correction_limit_{0.05};
   double cartesian_angular_correction_limit_{0.3};
 
   geometry_msgs::msg::TwistStamped last_command_{};
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr command_sub_;
   std::vector<double> positions_;
+  std::vector<double> velocities_;
   std::vector<double> target_positions_;
   std::vector<double> lower_limits_;
   std::vector<double> upper_limits_;

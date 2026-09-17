@@ -28,7 +28,9 @@ controller_interface::CallbackReturn DlsCartesianController::on_init()
         tip_link_ = auto_declare<std::string>("tip_link", "tool_link");
         command_timeout_ = auto_declare<double>("command_timeout", 0.1);
         cartesian_position_kp_ = auto_declare<double>("cartesian_position_kp", 1.5);
+        cartesian_position_kd_ = auto_declare<double>("cartesian_position_kd", 0.1);
         cartesian_orientation_kp_ = auto_declare<double>("cartesian_orientation_kp", 1.5);
+        cartesian_orientation_kd_ = auto_declare<double>("cartesian_orientation_kd", 0.1);
         cartesian_linear_correction_limit_ = auto_declare<double>(
             "cartesian_linear_correction_limit", 0.05);
         cartesian_angular_correction_limit_ = auto_declare<double>(
@@ -57,7 +59,9 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
     get_node()->get_parameter("tip_link", tip_link_);
     get_node()->get_parameter("command_timeout", command_timeout_);
     get_node()->get_parameter("cartesian_position_kp", cartesian_position_kp_);
+    get_node()->get_parameter("cartesian_position_kd", cartesian_position_kd_);
     get_node()->get_parameter("cartesian_orientation_kp", cartesian_orientation_kp_);
+    get_node()->get_parameter("cartesian_orientation_kd", cartesian_orientation_kd_);
     get_node()->get_parameter(
         "cartesian_linear_correction_limit", cartesian_linear_correction_limit_);
     get_node()->get_parameter(
@@ -83,7 +87,9 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
         return controller_interface::CallbackReturn::ERROR;
     }
     if (!std::isfinite(cartesian_position_kp_) || cartesian_position_kp_ < 0.0 ||
+        !std::isfinite(cartesian_position_kd_) || cartesian_position_kd_ < 0.0 ||
         !std::isfinite(cartesian_orientation_kp_) || cartesian_orientation_kp_ < 0.0 ||
+        !std::isfinite(cartesian_orientation_kd_) || cartesian_orientation_kd_ < 0.0 ||
         !std::isfinite(cartesian_linear_correction_limit_) ||
         cartesian_linear_correction_limit_ < 0.0 ||
         !std::isfinite(cartesian_angular_correction_limit_) ||
@@ -99,6 +105,7 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
         diagnostics_data_ = std::make_unique<pinocchio::Data>(*model_);
         dls_solver_.Init(*model_, tip_link_, joint_names_, 0.002);
         positions_.assign(joint_names_.size(), 0.0);
+        velocities_.assign(joint_names_.size(), 0.0);
         target_positions_.assign(joint_names_.size(), 0.0);
         lower_limits_.resize(joint_names_.size());
         upper_limits_.resize(joint_names_.size());
@@ -221,6 +228,48 @@ bool DlsCartesianController::compute_tip_pose(
     return position.allFinite() && rotation.allFinite();
 }
 
+bool DlsCartesianController::compute_tip_state(
+  const std::vector<double>& positions,
+  const std::vector<double>& velocities,
+  Eigen::Vector3d& position,
+  Eigen::Matrix3d& rotation,
+  Eigen::Vector3d& linear_velocity_local,
+  Eigen::Vector3d& angular_velocity_local)
+{
+    if (!model_ || !diagnostics_data_ || !model_->existFrame(tip_link_) ||
+        positions.size() != joint_names_.size() ||
+        velocities.size() != joint_names_.size())
+        return false;
+
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(model_->nq);
+    Eigen::VectorXd v = Eigen::VectorXd::Zero(model_->nv);
+    for (size_t i = 0; i < joint_names_.size(); ++i)
+    {
+        const auto id = model_->getJointId(joint_names_[i]);
+        if (id == 0 || id >= model_->joints.size() ||
+            model_->joints[id].nq() != 1 || model_->joints[id].nv() != 1 ||
+            model_->joints[id].idx_q() >= model_->nq ||
+            model_->joints[id].idx_v() >= model_->nv ||
+            !std::isfinite(positions[i]) || !std::isfinite(velocities[i]))
+            return false;
+        q[model_->joints[id].idx_q()] = positions[i];
+        v[model_->joints[id].idx_v()] = velocities[i];
+    }
+
+    pinocchio::forwardKinematics(*model_, *diagnostics_data_, q, v);
+    pinocchio::updateFramePlacements(*model_, *diagnostics_data_);
+    const auto frame_id = model_->getFrameId(tip_link_);
+    const auto& placement = diagnostics_data_->oMf[frame_id];
+    const auto frame_velocity = pinocchio::getFrameVelocity(
+        *model_, *diagnostics_data_, frame_id, pinocchio::LOCAL);
+    position = placement.translation();
+    rotation = placement.rotation();
+    linear_velocity_local = frame_velocity.linear();
+    angular_velocity_local = frame_velocity.angular();
+    return position.allFinite() && rotation.allFinite() &&
+        linear_velocity_local.allFinite() && angular_velocity_local.allFinite();
+}
+
 controller_interface::return_type DlsCartesianController::update(
   const rclcpp::Time&, const rclcpp::Duration& period)
 {
@@ -231,10 +280,11 @@ controller_interface::return_type DlsCartesianController::update(
         return controller_interface::return_type::ERROR;
     }
 
-    // 读取当前关节角度。状态接口按“位置、速度”成对排列，位置位于 2*i。
+    // 读取当前关节位置和速度。状态接口按“位置、速度”成对排列。
     for (size_t i = 0; i < joint_names_.size(); ++i) 
     {
         positions_[i] = state_interfaces_[2 * i].get_value();
+        velocities_[i] = state_interfaces_[2 * i + 1].get_value();
     }
     // 首次运行时将位置目标和 TCP 参考位姿对齐到实际状态，避免启动跳变。
     if (!target_initialized_) 
@@ -244,7 +294,11 @@ controller_interface::return_type DlsCartesianController::update(
     }
     Eigen::Vector3d actual_position;
     Eigen::Matrix3d actual_rotation;
-    if (!compute_tip_pose(positions_, actual_position, actual_rotation))
+    Eigen::Vector3d actual_linear_velocity_local;
+    Eigen::Vector3d actual_angular_velocity_local;
+    if (!compute_tip_state(
+            positions_, velocities_, actual_position, actual_rotation,
+            actual_linear_velocity_local, actual_angular_velocity_local))
         return controller_interface::return_type::ERROR;
     if (!reference_pose_initialized_)
     {
@@ -275,27 +329,33 @@ controller_interface::return_type DlsCartesianController::update(
     // 使用本次控制周期的实际时长，避免固定周期与调度周期不一致。
     const double dt = std::max(1e-6, period.seconds());
 
+    const Eigen::Vector3d reference_linear_velocity_local(
+        joystick_twist[0], joystick_twist[1], joystick_twist[2]);
+    const Eigen::Vector3d reference_angular_velocity_local(
+        joystick_twist[3], joystick_twist[4], joystick_twist[5]);
+
     // 摇杆速度在 TCP 局部坐标系中积分为参考位姿；松杆后参考位姿冻结。
     if (command_valid)
     {
-        const Eigen::Vector3d local_linear(
-            joystick_twist[0], joystick_twist[1], joystick_twist[2]);
-        const Eigen::Vector3d local_angular(
-            joystick_twist[3], joystick_twist[4], joystick_twist[5]);
-        reference_position_ += actual_rotation * local_linear * dt;
-        const double angle = local_angular.norm() * dt;
+        reference_position_ += actual_rotation * reference_linear_velocity_local * dt;
+        const double angle = reference_angular_velocity_local.norm() * dt;
         if (angle > 1e-12)
         {
             reference_orientation_ = reference_orientation_ *
-                Eigen::Quaterniond(Eigen::AngleAxisd(angle, local_angular.normalized()));
+                Eigen::Quaterniond(Eigen::AngleAxisd(
+                    angle, reference_angular_velocity_local.normalized()));
             reference_orientation_.normalize();
         }
     }
 
-    // 用当前 TCP 位姿误差生成局部坐标系修正速度，使参考轨迹和实际末端重新对齐。
+    // 用 TCP 位姿误差和速度误差生成局部坐标系 PD 修正速度。
     const Eigen::Vector3d position_error_local =
         actual_rotation.transpose() * (reference_position_ - actual_position);
-    Eigen::Vector3d linear_correction = cartesian_position_kp_ * position_error_local;
+    const Eigen::Vector3d linear_velocity_error_local =
+        reference_linear_velocity_local - actual_linear_velocity_local;
+    Eigen::Vector3d linear_correction =
+        cartesian_position_kp_ * position_error_local +
+        cartesian_position_kd_ * linear_velocity_error_local;
     if (linear_correction.norm() > cartesian_linear_correction_limit_ &&
         linear_correction.norm() > 1e-12)
         linear_correction *= cartesian_linear_correction_limit_ / linear_correction.norm();
@@ -303,8 +363,12 @@ controller_interface::return_type DlsCartesianController::update(
     const Eigen::Matrix3d orientation_error_rotation =
         actual_rotation.transpose() * reference_orientation_.toRotationMatrix();
     const Eigen::AngleAxisd orientation_error_angle_axis(orientation_error_rotation);
-    Eigen::Vector3d angular_correction = cartesian_orientation_kp_ *
-        orientation_error_angle_axis.angle() * orientation_error_angle_axis.axis();
+    const Eigen::Vector3d angular_velocity_error_local =
+        reference_angular_velocity_local - actual_angular_velocity_local;
+    Eigen::Vector3d angular_correction =
+        cartesian_orientation_kp_ * orientation_error_angle_axis.angle() *
+            orientation_error_angle_axis.axis() +
+        cartesian_orientation_kd_ * angular_velocity_error_local;
     if (angular_correction.norm() > cartesian_angular_correction_limit_ &&
         angular_correction.norm() > 1e-12)
         angular_correction *= cartesian_angular_correction_limit_ / angular_correction.norm();

@@ -97,7 +97,9 @@ arm_cartesian_controller:
       - velocity
     command_timeout: 0.1
     cartesian_position_kp: 10.0
+    cartesian_position_kd: 0.1
     cartesian_orientation_kp: 10.0
+    cartesian_orientation_kd: 0.1
     cartesian_linear_correction_limit: 0.1
     cartesian_angular_correction_limit: 1.0
 
