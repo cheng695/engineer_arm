@@ -117,7 +117,6 @@ controller_interface::CallbackReturn DlsCartesianController::on_configure(
         reference_following_error_stop_ <= reference_following_error_slow_ ||
         !std::isfinite(moving_correction_scale_) || moving_correction_scale_ < 0.0 ||
         !std::isfinite(holding_correction_scale_) || holding_correction_scale_ < 0.0 ||
-        holding_correction_scale_ < moving_correction_scale_ ||
         !std::isfinite(correction_scale_ramp_time_) || correction_scale_ramp_time_ <= 0.0)
     {
         RCLCPP_ERROR(get_node()->get_logger(), "笛卡尔控制参数范围无效");
@@ -400,7 +399,7 @@ controller_interface::return_type DlsCartesianController::update(
     const Eigen::Vector3d scaled_reference_angular_velocity_local =
         reference_motion_scale * reference_angular_velocity_local;
 
-    // 运动时只使用低比例纠偏，松杆或命令超时后平滑提高到保持比例。
+    // 运动和保持阶段分别使用独立的纠偏比例，切换时平滑增加或减小。
     const double target_correction_scale = joystick_active
         ? moving_correction_scale_
         : holding_correction_scale_;

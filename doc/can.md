@@ -60,4 +60,12 @@ ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 /arm_controller/controller_state.reference.positions[2] # POS/JTC的J3期望
 
 
-ros2 launch my_robot_bringup robot.launch.py   use_mock_hardware:=false   robot:=v1.1   gravity_compensation_mode:=external_gravity_only   gravity_effort_scale:=1.1
+ros2 launch my_robot_bringup robot.launch.py   robot:=v1.1   use_mock_hardware:=false   use_mujoco_hardware:=false   gravity_compensation_mode:=off   gravity_effort_scale:=1.1   gravity_always_on:=true
+
+
+ros2 launch my_robot_bringup robot.launch.py   robot:=v1.1   use_mujoco_hardware:=true   mujoco_model_path:=$PWD/sim/mujoco/my_robot_v1_1.xml   gravity_always_on:=true   gravity_effort_scale:=1.1
+
+
+ros2 topic echo /joy
+
+ros2 control list_controllers
